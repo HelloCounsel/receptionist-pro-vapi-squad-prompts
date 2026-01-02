@@ -1,0 +1,79 @@
+{# Extractor: Caller Classification - Extract caller type and purpose #}
+
+## Task
+Classify the caller type and determine their purpose from the conversation.
+
+## Extract These Fields
+
+1. **caller_type** (enum): One of:
+   - NEW_CLIENT: Seeking representation (accident, injury, need lawyer, referred)
+   - EXISTING_CLIENT: Already has a case ("my case manager", "my case", "settlement")
+   - INSURANCE_ADJUSTER: Insurance company rep ("adjuster", "claim number", insurance company names)
+   - VENDOR: Calling about invoice/payment owed TO them
+   - MEDICAL_PROVIDER: Hospital, clinic, about a patient, medical records
+   - LEGAL_SYSTEM: Court reporter, defense attorney, deposition
+   - SPANISH_SPEAKING: Speaks Spanish, asks "habla espanol"
+   - REFERRAL_SOURCE: Following up on a referral they made
+   - BUSINESS_SALES: Sales/solicitation call
+   - OTHER: Cannot classify
+   - UNKNOWN: Not enough information yet
+
+2. **purpose** (enum): Why they're calling:
+   - billing: Payment, invoice, outstanding balance
+   - case_info: Case update, status, case manager contact
+   - new_matter: Needs legal representation
+   - patient_care: About a patient, medical records
+   - staff_request: Asking for specific person by name
+   - disbursement: Check pickup, disbursement status
+   - bulk_inquiry: Multiple patients/cases
+   - referral_fee: About referral fee payment
+   - sales: Selling services
+   - other: Other purpose
+
+3. **customer_success_trigger** (boolean): True if ANY of these detected:
+   - Multiple patients mentioned ("I have 5 cases", "several patients")
+   - Referral partner (Hurt 911, etc.)
+   - Multiple people from same accident ("me and my daughter", "my sister's children")
+   - Disbursement/check pickup questions
+   - Cannot classify after analysis
+
+4. **target_staff_name** (string or null): If caller asked for specific person by name
+
+## Conversation
+{{ conversation }}
+
+## Response Format
+Return JSON:
+```json
+{
+  "caller_type": "enum value",
+  "purpose": "enum value",
+  "customer_success_trigger": true/false,
+  "target_staff_name": "string or null"
+}
+```
+
+## Classification Priority
+1. INSURANCE_ADJUSTER identification is FINAL - cannot be overridden by purpose
+2. Explicit staff request overrides other routing
+3. Customer success triggers take priority over standard routing
+
+## Examples
+
+Input: "This is Devon from State Farm. I need to check on John Doe's claim."
+Output: {"caller_type": "INSURANCE_ADJUSTER", "purpose": "case_info", "customer_success_trigger": false, "target_staff_name": null}
+
+Input: "I was in a car accident last week and need a lawyer."
+Output: {"caller_type": "NEW_CLIENT", "purpose": "new_matter", "customer_success_trigger": false, "target_staff_name": null}
+
+Input: "I'm calling about my case. My case manager is Sarah."
+Output: {"caller_type": "EXISTING_CLIENT", "purpose": "case_info", "customer_success_trigger": false, "target_staff_name": null}
+
+Input: "This is Emory Hospital billing department. We have an outstanding invoice."
+Output: {"caller_type": "VENDOR", "purpose": "billing", "customer_success_trigger": false, "target_staff_name": null}
+
+Input: "I need to check on about 5 patients for First Penn."
+Output: {"caller_type": "MEDICAL_PROVIDER", "purpose": "bulk_inquiry", "customer_success_trigger": true, "target_staff_name": null}
+
+Input: "Can I speak with Taylor?"
+Output: {"caller_type": "UNKNOWN", "purpose": "staff_request", "customer_success_trigger": false, "target_staff_name": "Taylor"}

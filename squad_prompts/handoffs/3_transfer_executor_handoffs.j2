@@ -1,0 +1,39 @@
+# Transfer Executor Handoff Rules
+
+## When to Hand Off
+
+Hand off when the transfer can't happen or the caller declines.
+
+---
+
+## Destinations
+
+### Message Taker
+
+Route here when:
+
+- Transfer failed (person/department unavailable)
+- Caller declined transfer and wants to leave a message
+- Destination is closed
+
+Pass:
+- transfer_failed_to (who you tried to reach)
+- All caller info
+
+### Greeter (Rare)
+
+Route here when:
+
+- Caller declined transfer
+- Caller doesn't want to leave a message
+- Caller has a different request
+
+This is rare - most callers either accept transfer or leave a message.
+
+---
+
+## No Handoff Needed
+
+**Transfer succeeds** → Call ends via system
+
+**Caller done after declining** → End call naturally

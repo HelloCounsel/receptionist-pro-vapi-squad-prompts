@@ -1,0 +1,63 @@
+{# Extractor: Handoff Summary - Generate 3-5 sentence summary for next node #}
+
+## Task
+Generate a concise 3-5 sentence summary of this conversation for the next agent node.
+
+## Include These Elements
+
+1. **Who is calling:** Name, organization (if applicable), caller type
+2. **What they need:** Their stated purpose or request
+3. **What was accomplished:** Actions taken so far (lookup, info provided, etc.)
+4. **What the next agent should do:** Clear instruction for next step
+5. **Special considerations:** Frustration level, urgency, edge cases
+
+## Guidelines
+
+- Keep it concise and actionable
+- Focus on RELEVANT information for the next node
+- Don't include full conversation history
+- Use natural language, not bullet points
+- Be specific about names, IDs, and status
+
+## Current State
+- Caller Name: {{ caller_name }}
+- Caller Type: {{ caller_type }}
+- Organization: {{ organization_name | default('N/A') }}
+- Purpose: {{ purpose | default('Not stated') }}
+- Frustration Level: {{ frustration_level | default(0) }}/3
+{% if case_manager_name %}
+- Case Manager: {{ case_manager_name }} (ID: {{ case_manager_id }})
+{% endif %}
+{% if client_name %}
+- Client: {{ client_name }}
+{% endif %}
+{% if case_status %}
+- Case Status: {{ case_status }}
+{% endif %}
+
+## Conversation
+{{ conversation }}
+
+## Response Format
+Return a plain text summary (3-5 sentences):
+
+```
+[Your summary here]
+```
+
+## Examples
+
+**Example 1 - Greeter to Lookup:**
+"Devon from State Farm is calling about John Doe's case. They need to speak with the case manager. Look up John Doe's file and determine who the case manager is."
+
+**Example 2 - Lookup to Info:**
+"Devon from State Farm is calling about John Doe's case. Found the file - Sarah Johnson is the case manager (ID: 25). Devon hasn't stated what specific info they need. Ask 'I have the file, how can I help you?' to understand their need."
+
+**Example 3 - Info to Transfer:**
+"Sarah Smith is an existing client calling about her case. She wants to speak with her case manager Victoria Morales (ID: 18). Case status is Pre-Lit Treating. Get consent and transfer to Victoria."
+
+**Example 4 - Transfer to Message (Failed):**
+"Attempted to transfer Sarah Smith to Victoria Morales but the transfer failed. Sarah is an existing client wanting an update on her case. Collect her callback number and take a detailed message for Victoria. Mark as standard priority."
+
+**Example 5 - Frustrated Caller:**
+"Michael Johnson is an existing client who has been trying to reach his case manager for two weeks. He's frustrated (level 2) about lack of callbacks. Transfer to case manager failed. Take message and mark as HIGH priority due to frustration."

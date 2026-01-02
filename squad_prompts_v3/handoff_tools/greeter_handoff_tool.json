@@ -1,0 +1,421 @@
+{
+  "type": "handoff",
+  "async": false,
+  "function": {
+    "name": "route_to_specialist"
+  },
+  "messages": [],
+  "destinations": [
+    {
+      "type": "assistant",
+      "assistantName": "Pre-Identified Client",
+      "description": "Use when case_details variable is available (phone matched existing client). The caller has pre-loaded case information. Route here immediately for pre-identified callers.",
+      "contextEngineeringPlan": {
+        "type": "all"
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's name (already known from case_details)"
+            },
+            "purpose": {
+              "type": "string",
+              "description": "What the caller needs help with"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Existing Client",
+      "description": "Caller says 'my case', 'my case manager', 'my paralegal', 'my attorney', 'my settlement', 'following up on my case', 'calling back about my case'. They are an existing client but phone was NOT pre-identified.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's full name"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "EXISTING_CLIENT"
+            },
+            "purpose": {
+              "type": "string",
+              "description": "What the caller needs help with"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Insurance Adjuster",
+      "description": "Caller from insurance company: 'calling from State Farm/Progressive/GEICO/Allstate/USAA/Liberty Mutual/Farmers', 'I'm the adjuster', 'regarding a claim', 'insurance representative'. CRITICAL: Even if they mention billing, payment, or invoice - insurance callers ALWAYS route here, NEVER to Vendor.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's full name"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "INSURANCE_ADJUSTER"
+            },
+            "organization_name": {
+              "type": "string",
+              "description": "Insurance company name (e.g., State Farm, Progressive)"
+            },
+            "client_name": {
+              "type": "string",
+              "description": "The PERSON's name (first and last name) whose case this is about. Must be a human name like 'John Smith', NOT a company name. If caller only mentions a company name (e.g., 'Walmart', 'State Farm', 'Walmart Claim Services'), leave this empty - do NOT use the company name as client_name. Only populate if the caller explicitly provides a person's name as the case subject."
+            },
+            "purpose": {
+              "type": "string",
+              "description": "What they need (case update, case manager contact, etc.)"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Medical Provider",
+      "description": "Caller from hospital, clinic, rehab center, medical facility about a patient - NOT about billing/payment/invoice. Keywords: 'calling from [Hospital/Clinic]', 'about a patient', 'patient records'. If they mention billing/payment AND are from medical facility, route to Vendor instead.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's full name"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "MEDICAL_PROVIDER"
+            },
+            "organization_name": {
+              "type": "string",
+              "description": "Medical facility name"
+            },
+            "client_name": {
+              "type": "string",
+              "description": "The PERSON's name (first and last name) whose case this is about. Must be a human name like 'John Smith', NOT a company/facility name. If caller only mentions a facility name (e.g., 'Piedmont Hospital', 'Grady Memorial'), leave this empty - do NOT use the facility name as client_name. Only populate if the caller explicitly provides a person's name as the patient."
+            },
+            "purpose": {
+              "type": "string",
+              "description": "What they need (case manager contact, case status, etc.)"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "New Client",
+      "description": "Caller had an accident and needs legal help: 'I was in an accident', 'someone hit me', 'car accident', 'slip and fall', 'I fell', 'medical malpractice', 'hurt at work', 'need a lawyer', 'do I have a case?', 'should I get a lawyer?', 'Do you handle X cases?'. Recent incident or uncertainty about whether they have a case.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's full name"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "NEW_CLIENT"
+            },
+            "purpose": {
+              "type": "string",
+              "description": "Brief description of their situation"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Vendor",
+      "description": "Invoice or payment inquiry: 'calling about an invoice', 'outstanding balance', 'payment for services', 'payment status'. Also route here for Medical Provider + Billing (hospital/clinic calling about payment - NOT insurance). Never route insurance callers here.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's full name"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "VENDOR or MEDICAL_PROVIDER"
+            },
+            "organization_name": {
+              "type": "string",
+              "description": "Company/organization name"
+            },
+            "purpose": {
+              "type": "string",
+              "description": "Invoice/billing details"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Direct Staff Request",
+      "description": "Caller asks for a specific person BY NAME: 'Can I speak with Sarah Johnson?', 'I need to talk to [Name]', 'Is [Name] available?', 'Transfer me to [Name]'. HIGHEST PRIORITY - this overrides all other classification. PREREQUISITE: Collect caller's name first. If not provided, ask: 'Sure, I can try to reach [Name]. May I have your name?' Wait for response, then route.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's full name - ask before handoff if not provided"
+            },
+            "target_staff_name": {
+              "type": "string",
+              "description": "The specific staff member they requested"
+            },
+            "purpose": {
+              "type": "string",
+              "description": "Why they want to speak with this person (if stated)"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Family Member",
+      "description": "Caller is calling about someone ELSE's case: 'calling about my mom's case', 'my dad's attorney', 'my son's case', 'I'm calling for [someone else]'. The caller_name is DIFFERENT from the client_name. Third-party inquiries about a family member's case.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's full name (the family member calling)"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "FAMILY_MEMBER"
+            },
+            "client_name": {
+              "type": "string",
+              "description": "The PERSON's name (first and last name) whose case this is about - the family member's relative who is the actual client. Must be a human name like 'John Smith'. Only populate if the caller explicitly provides the client's name."
+            },
+            "purpose": {
+              "type": "string",
+              "description": "What they need"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Spanish Speaker",
+      "description": "Caller speaks Spanish, asks 'Habla español?', or clearly struggles with English and would be better served in Spanish.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's name if provided"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "SPANISH_SPEAKING"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Referral Source",
+      "description": "Caller referred a client and is following up: 'I referred [client name]', 'calling about my referral', 'referral fee', 'I sent someone to you'.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The referral source's name"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "REFERRAL_SOURCE"
+            },
+            "client_name": {
+              "type": "string",
+              "description": "The PERSON's name (first and last name) whom they referred to the firm. Must be a human name like 'John Smith'. Only populate if the caller explicitly provides the referred person's name."
+            },
+            "purpose": {
+              "type": "string",
+              "description": "What they need (referral fee inquiry, status check, etc.)"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Legal System",
+      "description": "Court reporters, defense attorneys, court clerks, process servers, deposition scheduling: 'court reporter', 'defense attorney', 'deposition', 'process server', 'court clerk', 'from [law firm]'.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's full name"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "LEGAL_SYSTEM"
+            },
+            "organization_name": {
+              "type": "string",
+              "description": "Their organization/firm name"
+            },
+            "client_name": {
+              "type": "string",
+              "description": "The PERSON's name (first and last name) whose case this is about. Must be a human name like 'John Smith', NOT a law firm or organization name. If caller only mentions a firm name (e.g., 'Smith & Associates'), leave this empty. Only populate if the caller explicitly provides a person's name as the case subject."
+            },
+            "purpose": {
+              "type": "string",
+              "description": "What they need"
+            },
+            "frustration_level": {
+              "type": "number",
+              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Sales Solicitation",
+      "description": "Vendors trying to sell services: 'introduce myself', 'calling about our services', 'platform we offer', 'wanted to reach out about', 'business development'. Sales or marketing calls.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 3
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's name"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "BUSINESS_SALES"
+            },
+            "organization_name": {
+              "type": "string",
+              "description": "Their company name"
+            },
+            "purpose": {
+              "type": "string",
+              "description": "What they're selling/offering"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

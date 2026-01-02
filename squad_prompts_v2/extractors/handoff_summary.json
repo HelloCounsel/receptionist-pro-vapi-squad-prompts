@@ -1,0 +1,74 @@
+{
+  "name": "handoff_summary",
+  "description": "Generate a concise 2-3 sentence summary for the next agent",
+  "output": [
+    {
+      "name": "summary",
+      "type": "string",
+      "description": "2-3 sentence summary: who is calling, what they need, what was accomplished, what the next agent should do"
+    }
+  ],
+  "guidelines": [
+    "Keep it concise and actionable",
+    "Focus on RELEVANT information for the next agent",
+    "Don't include full conversation history",
+    "Use natural language, not bullet points",
+    "Be specific about names, IDs, and status"
+  ],
+  "examples": [
+    {
+      "context": "Greeter → Case Handler",
+      "input": {
+        "caller_name": "Devon",
+        "caller_type": "INSURANCE_ADJUSTER",
+        "organization_name": "State Farm",
+        "client_name": "John Doe",
+        "purpose": "case_info"
+      },
+      "output": {
+        "summary": "Devon from State Farm is calling about John Doe's case. They need case information. Look up John Doe's file and ask what specific info they need."
+      }
+    },
+    {
+      "context": "Case Handler → Transfer Executor",
+      "input": {
+        "caller_name": "Sarah Smith",
+        "caller_type": "EXISTING_CLIENT",
+        "case_manager_name": "Victoria Morales",
+        "case_manager_id": 18,
+        "case_status": "Pre-Lit Treating",
+        "purpose": "speak with case manager"
+      },
+      "output": {
+        "summary": "Sarah Smith is an existing client wanting to speak with her case manager Victoria Morales (ID: 18). Case status is Pre-Lit Treating. Get consent and transfer to Victoria."
+      }
+    },
+    {
+      "context": "Transfer Executor → Message Taker",
+      "input": {
+        "caller_name": "Sarah Smith",
+        "caller_type": "EXISTING_CLIENT",
+        "transfer_outcome": "failed",
+        "transfer_attempted_to": "Victoria Morales",
+        "case_manager_name": "Victoria Morales",
+        "frustration_level": 1
+      },
+      "output": {
+        "summary": "Attempted to transfer Sarah Smith to Victoria Morales but transfer failed. Sarah is an existing client wanting an update on her case. Collect callback number and take message for Victoria. Mark as standard priority."
+      }
+    },
+    {
+      "context": "Any → Message Taker (frustrated caller)",
+      "input": {
+        "caller_name": "Michael Johnson",
+        "caller_type": "EXISTING_CLIENT",
+        "transfer_outcome": "failed",
+        "frustration_level": 3,
+        "purpose": "trying to reach case manager for weeks"
+      },
+      "output": {
+        "summary": "Michael Johnson is an existing client who has been trying to reach his case manager for two weeks. He's very frustrated about lack of callbacks. Transfer failed. Take message and mark as URGENT priority."
+      }
+    }
+  ]
+}

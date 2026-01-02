@@ -1,0 +1,62 @@
+{# Extractor: Case Context - Extract case manager and case details #}
+
+## Task
+Extract case-related information from search results or conversation.
+
+## Extract These Fields
+
+1. **case_manager_name** (string): Name of the case manager
+   - From search results: case_manager field
+   - From conversation: "my case manager is [Name]"
+
+2. **case_manager_id** (integer): Staff ID of the case manager
+   - From search results: staff_id field
+   - Must be a number
+
+3. **staff_id** (integer): Same as case_manager_id in most cases
+   - Used for transfer routing
+
+4. **case_status** (string): Current status of the case
+   - From search results: case_status field
+   - Examples: "Pre-Lit Treating", "Active", "Settled", "Archived", "Withdrawn"
+
+5. **client_name** (string): Name of the client (person the case is about)
+   - For existing clients: their own name
+   - For external callers: the patient/client they're calling about
+
+6. **incident_date** (string): Date of the incident
+   - From search results: incident_date field
+   - Format: MM/DD/YYYY
+
+7. **is_archived** (boolean): True if case_status is "Archived" or "Withdrawn"
+
+## Search Results (if available)
+{{ search_results | default('None') }}
+
+## Conversation
+{{ conversation }}
+
+## Response Format
+Return JSON:
+```json
+{
+  "case_manager_name": "string or null",
+  "case_manager_id": "integer or null",
+  "staff_id": "integer or null",
+  "case_status": "string or null",
+  "client_name": "string or null",
+  "incident_date": "string or null",
+  "is_archived": true/false
+}
+```
+
+## Examples
+
+Input search_results: {"case_manager": "Sarah Johnson", "staff_id": 25, "case_status": "Pre-Lit Treating", "client_full_name": "John Doe", "incident_date": "3/20/2024"}
+Output: {"case_manager_name": "Sarah Johnson", "case_manager_id": 25, "staff_id": 25, "case_status": "Pre-Lit Treating", "client_name": "John Doe", "incident_date": "3/20/2024", "is_archived": false}
+
+Input search_results: {"case_manager": "Michael Sole", "staff_id": 42, "case_status": "Archived", "client_full_name": "Jane Smith", "incident_date": "1/15/2023"}
+Output: {"case_manager_name": "Michael Sole", "case_manager_id": 42, "staff_id": 42, "case_status": "Archived", "client_name": "Jane Smith", "incident_date": "1/15/2023", "is_archived": true}
+
+Input conversation: "My case manager is Victoria"
+Output: {"case_manager_name": "Victoria", "case_manager_id": null, "staff_id": null, "case_status": null, "client_name": null, "incident_date": null, "is_archived": false}

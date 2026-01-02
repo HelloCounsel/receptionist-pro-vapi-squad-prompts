@@ -1,0 +1,103 @@
+{
+  "name": "frustration_level",
+  "description": "Rate caller's frustration level 0-3 based on language and tone indicators",
+  "output": [
+    {
+      "name": "frustration_level",
+      "type": "number",
+      "enum": [0, 1, 2, 3],
+      "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated/angry"
+    },
+    {
+      "name": "signals",
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of detected frustration signals from the conversation"
+    },
+    {
+      "name": "recommended_priority",
+      "type": "string",
+      "enum": ["standard", "high", "urgent"],
+      "description": "Message priority based on frustration level"
+    }
+  ],
+  "scale": {
+    "0": {
+      "label": "Calm/Normal",
+      "signals": [
+        "Normal conversational tone",
+        "No urgency indicators",
+        "Patient with process"
+      ]
+    },
+    "1": {
+      "label": "Mild Concern/Impatience",
+      "signals": [
+        "Slight urgency: 'I've been waiting'",
+        "Mild impatience: 'I called earlier'",
+        "Concerned but cooperative"
+      ]
+    },
+    "2": {
+      "label": "Frustrated",
+      "signals": [
+        "'Haven't heard back'",
+        "'Keep calling'",
+        "'Been trying to reach'",
+        "Audible sighing or exasperation",
+        "Multiple callback attempts mentioned"
+      ]
+    },
+    "3": {
+      "label": "Very Frustrated/Angry",
+      "signals": [
+        "'This is ridiculous'",
+        "'Been calling for weeks/month'",
+        "Threatening language ('I'm going to...')",
+        "Explicit anger ('I'm very upset')",
+        "Demanding immediate escalation",
+        "Mentions complaints or reviews"
+      ]
+    }
+  },
+  "priority_mapping": {
+    "0": "standard",
+    "1": "standard",
+    "2": "high",
+    "3": "urgent"
+  },
+  "examples": [
+    {
+      "input": "Hi, I'm calling to check on my case status.",
+      "output": {
+        "frustration_level": 0,
+        "signals": [],
+        "recommended_priority": "standard"
+      }
+    },
+    {
+      "input": "I called yesterday and was told someone would call me back.",
+      "output": {
+        "frustration_level": 1,
+        "signals": ["called yesterday", "promised callback"],
+        "recommended_priority": "standard"
+      }
+    },
+    {
+      "input": "I've been trying to reach my case manager for two weeks. No one returns my calls.",
+      "output": {
+        "frustration_level": 2,
+        "signals": ["two weeks", "no one returns calls", "trying to reach"],
+        "recommended_priority": "high"
+      }
+    },
+    {
+      "input": "This is ridiculous! I've been calling for a month and no one ever calls me back. I need to speak to someone NOW.",
+      "output": {
+        "frustration_level": 3,
+        "signals": ["this is ridiculous", "calling for a month", "no one calls back", "demanding immediate action"],
+        "recommended_priority": "urgent"
+      }
+    }
+  ]
+}

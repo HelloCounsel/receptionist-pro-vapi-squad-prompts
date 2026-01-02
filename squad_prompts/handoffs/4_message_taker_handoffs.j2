@@ -1,0 +1,24 @@
+# Message Taker Handoff Rules
+
+## When to Hand Off
+
+Almost never. Message Taker is typically the final stop - calls end here.
+
+---
+
+## Destinations
+
+### Greeter (Rare)
+
+Route here only when:
+
+- Message has been saved
+- Caller has a completely different request they want help with
+
+This almost never happens.
+
+---
+
+## No Handoff Needed (Most Common)
+
+After saving the message and confirming receipt, the call ends naturally. The caller says thanks/goodbye, you respond in kind, done.

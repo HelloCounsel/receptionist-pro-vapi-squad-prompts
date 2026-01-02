@@ -1,0 +1,40 @@
+{# Extractor: Caller Identity - Extract name and organization #}
+
+## Task
+Extract the caller's identity from the conversation.
+
+## Extract These Fields
+
+1. **caller_name** (string): The caller's full name
+   - Look for: "This is [Name]", "My name is [Name]", "[Name] calling"
+   - If not provided, return null
+
+2. **organization_name** (string): The caller's company or organization
+   - Look for: "calling from [Company]", "from [Hospital/Clinic]", "with [Insurance Co]"
+   - If not provided, return null
+
+## Conversation
+{{ conversation }}
+
+## Response Format
+Return JSON:
+```json
+{
+  "caller_name": "string or null",
+  "organization_name": "string or null"
+}
+```
+
+## Examples
+
+Input: "Hi, this is Devon from State Farm calling on a recorded line."
+Output: {"caller_name": "Devon", "organization_name": "State Farm"}
+
+Input: "I need to speak with someone about my case."
+Output: {"caller_name": null, "organization_name": null}
+
+Input: "This is Dr. Johnson from Emory Hospital."
+Output: {"caller_name": "Dr. Johnson", "organization_name": "Emory Hospital"}
+
+Input: "Sarah Smith calling."
+Output: {"caller_name": "Sarah Smith", "organization_name": null}

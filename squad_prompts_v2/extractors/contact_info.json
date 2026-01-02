@@ -1,0 +1,75 @@
+{
+  "name": "contact_info",
+  "description": "Extract phone and email from conversation",
+  "output": [
+    {
+      "name": "phone_number",
+      "type": "string",
+      "description": "Caller's phone number in E.164 format (+1XXXXXXXXXX). Null if not provided."
+    },
+    {
+      "name": "phone_confirmed",
+      "type": "boolean",
+      "description": "True if agent read back the number AND caller confirmed it was correct"
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "description": "Caller's email address. Preserve exact spelling. Null if not provided."
+    },
+    {
+      "name": "email_confirmed",
+      "type": "boolean",
+      "description": "True if agent spelled it back AND caller confirmed it was correct"
+    }
+  ],
+  "phone_normalization": {
+    "rules": [
+      "Remove parentheses, dashes, spaces",
+      "Add +1 prefix if US number without country code"
+    ],
+    "examples": {
+      "(404) 555-1234": "+14045551234",
+      "404-555-1234": "+14045551234",
+      "4045551234": "+14045551234"
+    }
+  },
+  "examples": [
+    {
+      "input": "Agent: What's your phone number?\nCaller: 404-555-1234\nAgent: 404-555-1234?\nCaller: Yes",
+      "output": {
+        "phone_number": "+14045551234",
+        "phone_confirmed": true,
+        "email": null,
+        "email_confirmed": false
+      }
+    },
+    {
+      "input": "Agent: What's your phone number?\nCaller: My number is 678-999-8888",
+      "output": {
+        "phone_number": "+16789998888",
+        "phone_confirmed": false,
+        "email": null,
+        "email_confirmed": false
+      }
+    },
+    {
+      "input": "Agent: And can I get an email too?\nCaller: It's devon.smith@statefarm.com\nAgent: Got it, d-e-v-o-n dot s-m-i-t-h at state farm dot com?\nCaller: That's correct",
+      "output": {
+        "phone_number": null,
+        "phone_confirmed": false,
+        "email": "devon.smith@statefarm.com",
+        "email_confirmed": true
+      }
+    },
+    {
+      "input": "Agent: What's your phone number?\nCaller: I'd rather not give that out",
+      "output": {
+        "phone_number": null,
+        "phone_confirmed": false,
+        "email": null,
+        "email_confirmed": false
+      }
+    }
+  ]
+}
