@@ -1,0 +1,79 @@
+{
+  "sandbox": {
+    "org_name": "Sandbox",
+    "api_key": "3678cd88-c4eb-4b0f-a5e7-1275083ecce1",
+    "cli_alias": "vapi-sandbox",
+    "squad_id": "7ae431c2-2bc4-4cb0-8189-1b04b0131832",
+    "assistants": {
+      "greeter_classifier": "f76c8234-26c4-45f8-ab66-cc34edcf956f",
+      "existing_client": "c3019349-729e-42df-a367-48245e75c1ad",
+      "insurance_adjuster": "bd4f1ff5-7555-4e7f-9ea1-c037b6bbec56",
+      "medical_provider": "f61ed81a-9835-4903-a86d-cdf010f77951",
+      "new_client": "fc2f0561-f714-41cf-adc3-014f356adaa9",
+      "vendor": "3ec9d20a-c1c3-40d7-bb90-d517b8158c9c",
+      "direct_staff_requests": "d5acdcf4-fcfe-4506-b297-b6840dab1579",
+      "spanish_speaker": "895dfb0a-5ff4-439c-91e9-3d51ccc346a5",
+      "legal_system_caller": "8fcbbf13-8e02-49c0-98d4-a9d0f6ad7b4d"
+    }
+  },
+  "production": {
+    "org_name": "Production",
+    "api_key": "49f35b20-ce20-4b24-9835-1e8248f988eb",
+    "cli_alias": "vapi-prod",
+    "squad_id": "cacb164b-491e-484c-8c44-c55b4268cf37",
+    "assistants": {
+      "greeter_classifier": "b1cc39fb-c5c4-4081-87c2-834f50bd2040",
+      "existing_client": "6788a375-3567-43a5-81a8-0c63ea2a2db6",
+      "insurance_adjuster": "9230812d-0a72-4ac0-a953-422ef85bb526",
+      "medical_provider": "2c75a350-35e5-4914-816e-18d93aaba94e",
+      "new_client": "41253f14-df42-44cb-a319-883c5c9ab186",
+      "vendor": "03265939-c7b1-430b-90f4-a9c155cb3c26",
+      "direct_staff_requests": "55bad977-4713-4999-8df6-bb9d92b5fcd4",
+      "spanish_speaker": "cc0ac920-edd9-4f05-98b0-4126328b8595",
+      "legal_system_caller": "9368ee40-73c8-4386-a95b-4d19b712a20d",
+      "family_member": "f7e36df2-117b-4f72-a77f-5ac55f64b6e3"
+    }
+  },
+  "quick_reference": {
+    "greeter_classifier": {
+      "sandbox": "f76c8234-26c4-45f8-ab66-cc34edcf956f",
+      "production": "b1cc39fb-c5c4-4081-87c2-834f50bd2040"
+    },
+    "existing_client": {
+      "sandbox": "c3019349-729e-42df-a367-48245e75c1ad",
+      "production": "6788a375-3567-43a5-81a8-0c63ea2a2db6"
+    },
+    "insurance_adjuster": {
+      "sandbox": "bd4f1ff5-7555-4e7f-9ea1-c037b6bbec56",
+      "production": "9230812d-0a72-4ac0-a953-422ef85bb526"
+    },
+    "medical_provider": {
+      "sandbox": "f61ed81a-9835-4903-a86d-cdf010f77951",
+      "production": "2c75a350-35e5-4914-816e-18d93aaba94e"
+    },
+    "new_client": {
+      "sandbox": "fc2f0561-f714-41cf-adc3-014f356adaa9",
+      "production": "41253f14-df42-44cb-a319-883c5c9ab186"
+    },
+    "vendor": {
+      "sandbox": "3ec9d20a-c1c3-40d7-bb90-d517b8158c9c",
+      "production": "03265939-c7b1-430b-90f4-a9c155cb3c26"
+    },
+    "direct_staff_requests": {
+      "sandbox": "d5acdcf4-fcfe-4506-b297-b6840dab1579",
+      "production": "55bad977-4713-4999-8df6-bb9d92b5fcd4"
+    },
+    "spanish_speaker": {
+      "sandbox": "895dfb0a-5ff4-439c-91e9-3d51ccc346a5",
+      "production": "cc0ac920-edd9-4f05-98b0-4126328b8595"
+    },
+    "legal_system_caller": {
+      "sandbox": "8fcbbf13-8e02-49c0-98d4-a9d0f6ad7b4d",
+      "production": "9368ee40-73c8-4386-a95b-4d19b712a20d"
+    },
+    "family_member": {
+      "sandbox": null,
+      "production": "f7e36df2-117b-4f72-a77f-5ac55f64b6e3"
+    }
+  }
+}

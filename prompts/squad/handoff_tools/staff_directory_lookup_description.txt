@@ -1,0 +1,19 @@
+Voice AI staff directory lookup. Use when caller asks for a person BY NAME to transfer calls or get contact info.
+
+DO NOT use for generic role requests without a name ("I need a lawyer" → route to customer success instead).
+
+TRANSCRIPTION CONTEXT: Input is speech-to-text, inherently noisy. Names are frequently mis-transcribed.
+
+CRITICAL: Extract ONLY the NAME from query. IGNORE these (callers often get them wrong):
+- Roles: lawyer, attorney, case manager, paralegal, admin, receptionist
+- Possessives/qualifiers: my, the, our, who handles
+
+Examples:
+"Michael my lawyer" → search "Michael" (ignore role)
+"Taylor the attorney" → search "Taylor"
+"my case manager Linda" → search "Linda"
+"I need Soul" → search "Soul" (transcription of "Sole")
+
+Handle transcription errors: Sole=Soul, Steele=Steel, Middleton=Millerton, Mike=Michael.
+
+MATCHING: NAME similarity only. Return ALL matches - never filter by role/department. Roles in query are UNRELIABLE. Let agent disambiguate with caller.
