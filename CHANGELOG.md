@@ -363,3 +363,117 @@ The caller had already provided their message in response to the first question,
 
 The above prompt changes (Issue #9) need to be copied to the VAPI dashboard to take effect at runtime:
 - Update the Existing Client assistant prompt with the new [Error Handling] and [Message Taking - Inline] sections
+
+---
+
+## [2026-01-17] - Frustrated Caller Escalation
+
+### Issue #10: Existing Client Agent Did Not Transfer Frustrated Caller to Customer Success
+
+**Problem:** Paula Simmons, a frustrated existing client who had been trying to reach someone about her settlement check since November (over a month), was not offered a transfer to customer success despite expressing clear frustration signals like "I've been calling since last month and leaving messages" and "No one has never called me back."
+
+**Evidence from call:**
+- Caller expressed repeated unsuccessful contact attempts
+- Caller mentioned communication breakdown (no callbacks)
+- Settlement/payment issue (high-stakes)
+- Caller threatened to escalate in-person ("I think I need to make a visit")
+- Agent found her case (count=1), offered transfer to case manager
+- Transfer failed (Kevin unavailable)
+- Agent took a routine message instead of escalating to customer success
+
+**Root Cause:** The existing_client agent instructions had a gap in frustration-triggered escalation logic. The only guidance for frustrated callers (lines 390-392) was:
+```
+**Frustrated caller:**
+- Acknowledge briefly: "I hear you."
+- Help quickly.
+```
+
+This told the agent HOW to respond but did NOT specify WHEN to escalate to customer_success. The "caller frustrated" trigger on line 259 only applied during the multiple-match disambiguation flow (count > 1), not when a single match was found.
+
+**Solution:** Added explicit frustration-triggered escalation logic that recognizes communication breakdown patterns and routes to customer success.
+
+**Files Changed:**
+
+1. `prompts/squad/assistants/03_existing_client.md`
+   - [Goals]: Added 4th goal: "Escalate frustrated callers with communication breakdowns to customer_success"
+   - [Error Handling]: Replaced generic "Frustrated caller" section with "Frustrated caller (HIGH PRIORITY ESCALATION)" that includes:
+     - Explicit frustration signals to recognize (repeated calls, unreturned messages, waiting weeks/months)
+     - Trigger conditions (communication breakdown, settlement/payment delays, extended wait times)
+     - During hours: Escalate to customer_success with apology and offer to transfer
+     - After hours: Mark as urgent, take message with urgency flag
+     - Explicit instruction: "DO NOT simply take a routine message when a caller expresses ongoing communication failures"
+
+2. `prompts/squad/assistants/04_insurance_adjuster.md`
+   - [Goals]: Added 4th goal: "Escalate frustrated callers with communication breakdowns to the insurance department"
+   - [Error Handling]: Replaced generic "Frustrated caller" section with "Frustrated caller (HIGH PRIORITY ESCALATION)" that includes:
+     - Explicit frustration signals to recognize (repeated calls, unreturned messages, waiting weeks/months)
+     - Trigger conditions (communication breakdown, extended wait times for documents like LOR, delayed responses)
+     - During hours: Escalate to insurance department with apology and offer to transfer
+     - After hours: Mark as urgent, take message with urgency flag
+     - Explicit instruction: "DO NOT simply take a routine message when a caller expresses ongoing communication failures"
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above prompt changes (Issue #10) need to be copied to the VAPI dashboard to take effect at runtime:
+- Update the Existing Client assistant prompt with the new [Goals] section and [Frustrated caller (HIGH PRIORITY ESCALATION)] section
+- Update the Insurance Adjuster assistant prompt with the new [Goals] section and [Frustrated caller (HIGH PRIORITY ESCALATION)] section
+
+---
+
+## [2026-01-17] - Fallback Line Agent
+
+### Feature: Fallback Line Agent for Uncertain Routing
+
+**Problem:** When the greeter cannot figure out what to do next, it may get stuck in a loop instead of gracefully resolving the call. There was no fallback mechanism for:
+1. Callers requesting general help ("operator", "receptionist", "someone")
+2. Unclear caller purpose after multiple clarifying questions
+3. Conversations going in circles
+
+**Principle:** Resolving with fallback to customer success or taking a message is better than getting stuck in a loop.
+
+**Solution:** Created a new Fallback Line agent (#14) that acts as a safety net when the greeter is uncertain how to proceed.
+
+**Behavior:**
+- During hours (`intake_is_open = true`): Transfer immediately to customer success
+- After hours (`intake_is_open = false`): Take a message, promise callback
+
+**Files Created:**
+
+1. `prompts/squad/assistants/14_fallback_line.md`
+   - New agent with `transfer_call` and `take_message` tools
+   - Warm, reassuring style as the "safety net"
+   - Business hours logic for routing vs message-taking
+   - Error handling for transfer failures
+
+**Files Changed:**
+
+1. `prompts/squad/assistants/01_greeter_classifier.md`
+   - Removed Step 4.5 (Handle "General Help" Requests) - logic moved to handoff tool description
+   - Added Step 6: Fallback for Uncertainty with explicit triggers:
+     - Caller's purpose unclear after 2 clarifying questions
+     - Responses don't match any known caller type
+     - About to repeat a question already asked
+     - Genuinely uncertain which destination is correct
+   - Updated destination count from 12 to 13
+
+2. `prompts/squad/handoff_tools/greeter_handoff_destinations.md`
+   - Updated Direct Staff Request section: "front desk", "operator", etc. → route to fallback_line (was customer_success)
+   - Updated Direct Staff Request section: role without specific name → route to fallback_line (was customer_success)
+   - Added Section 13: Fallback Line Agent with full description covering:
+     - General help requests trigger
+     - Uncertain routing trigger
+     - Variables expected (caller_name, purpose optional; frustration_level required)
+   - Added row 13 to Quick Reference Table
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above changes need to be applied in the VAPI dashboard:
+1. Create new "Fallback Line" assistant with the prompt from `14_fallback_line.md`
+2. Configure with `transfer_call` and `take_message` tools
+3. Set firstMessage to empty string with "assistant-speaks-first" mode
+4. Update Greeter Classifier assistant prompt (Step 6 added)
+5. Add fallback_line as 13th destination in the greeter's handoff tool

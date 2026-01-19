@@ -72,6 +72,10 @@ Do NOT use this destination if:
 - Caller is an existing client but wants representation for a NEW/DIFFERENT legal matter
   (e.g., "I have a car accident case with you, but I want to open a medical malpractice case")
   → Use New Client instead - treat them as a new intake for the new matter
+- Caller is an existing client but describes a NEW accident/injury they JUST experienced
+  (e.g., "I'm a client, but I was just in a car accident yesterday", "I have a case with you, but I slipped and fell last week")
+  → Use New Client instead - this is a new potential case that needs intake evaluation
+  → Key signal: They describe something that HAPPENED (new incident) vs asking about something that EXISTS (their current case)
 ```
 
 **Variables Expected:**
@@ -106,7 +110,8 @@ If the caller has not provided their name yet:
 1. Do NOT call this tool
 2. First ask: "Sure, I can help. May I have your name and which insurance company you're with?"
 3. Wait for their response
-4. Only then call this tool
+4. First name + organization is SUFFICIENT - do not insist on last name
+5. Only then call this tool
 
 Collect if possible (but don't block handoff):
 - Organization name (insurance company)
@@ -148,7 +153,8 @@ If the caller has not provided their name yet:
 1. Do NOT call this tool
 2. First ask: "Sure, I can help. May I have your name and which facility you're calling from?"
 3. Wait for their response
-4. Only then call this tool
+4. First name + facility name is SUFFICIENT - do not insist on last name
+5. Only then call this tool
 
 Collect if possible:
 - Organization name (hospital/clinic name)
@@ -186,6 +192,12 @@ Use this destination when the caller:
 - Is an EXISTING client who wants to open a NEW/SEPARATE case for a different matter
   (e.g., "I have a car accident case with you, but I want representation for a medical malpractice case")
   → Treat them as a new intake for the new matter
+- Caller describes a NEW accident/injury/incident that happened to a FAMILY MEMBER
+  (e.g., "My daughter had surgery complications", "My husband was hit by a car", "My mom fell at the grocery store")
+  → The injured party does NOT have to be the person calling
+  → What matters: Is this a NEW potential case that needs intake evaluation?
+- Caller is an EXISTING client but describes a NEW accident/injury they just experienced
+  (e.g., "I'm a client, but I was in an accident yesterday", "I have a case with you but I just slipped and fell")
 
 If the caller has not provided their FULL name yet:
 1. Do NOT call this tool
@@ -235,7 +247,8 @@ If the caller has not provided their name yet:
 1. Do NOT call this tool
 2. First ask: "Sure, I can help with that. May I have your name and company?"
 3. Wait for their response
-4. Only then call this tool
+4. First name + company name is SUFFICIENT - do not insist on last name
+5. Only then call this tool
 ```
 
 **Variables Expected:**
@@ -281,14 +294,14 @@ If the caller has not provided their name yet:
 Do NOT use this destination if:
 - Caller asks for "a case manager" or "someone in billing" (generic role, not a name)
 - Caller wants to speak with "my case manager" → Use Existing Client to look up their assigned manager
-- Caller asks for "front desk", "operator", "representative", "receptionist", "human", "a person", "someone" → These are general help requests, route to customer_success
+- Caller asks for "front desk", "operator", "representative", "receptionist", "human", "a person", "someone" → These are general help requests, route to fallback_line
 - Caller mentions a role/title (lawyer, attorney, paralegal, billing, etc.) AND says "I don't know" or cannot provide a specific person's name when asked
 
 IMPORTANT - Role vs Name Detection:
 These are ROLES/GENERAL REQUESTS, not names: "lawyer", "attorney", "case manager", "front desk", "receptionist", "operator", "human", "representative", "paralegal", "billing", "accounting", "someone", "anyone"
 Only use this destination when caller provides an ACTUAL person's name (first name, last name, or full name).
 
-If caller says a role but doesn't know the specific name → Route to customer_success (they'll help find the right person)
+If caller says a role but doesn't know the specific name → Route to fallback_line (they'll help find the right person)
 ```
 
 **Variables Expected:**
@@ -326,6 +339,9 @@ If the caller has not provided their name yet:
 Do NOT use this destination if:
 - Caller IS the client (same person) → Use Existing Client or Pre-ID Client
 - Caller refuses to identify themselves
+- Caller describes a NEW accident/injury/incident involving their family member
+  → This is a potential new case - use New Client instead
+  → Family Member is ONLY for inquiries about EXISTING cases at the firm
 ```
 
 **Variables Expected:**
@@ -432,7 +448,8 @@ If the caller has not provided their name yet:
 1. Do NOT call this tool
 2. First ask: "Sure, I can help. May I have your name and where you're calling from?"
 3. Wait for their response
-4. Only then call this tool
+4. First name + organization is SUFFICIENT - do not insist on last name
+5. Only then call this tool
 
 Do NOT use this destination if:
 - Caller is our client asking about their court date → Use Existing Client
@@ -488,6 +505,50 @@ Do NOT use this destination if:
 
 ---
 
+## 13. Fallback Line Agent
+
+**Assistant Name:** `Fallback Line`
+
+**Description:**
+```
+Hands off to the Fallback Line agent for general help requests OR when you cannot determine appropriate routing.
+
+This is your SAFETY NET - use it for general assistance and to prevent getting stuck in loops.
+
+Use this destination when:
+
+**General Help Requests:**
+- Caller asks for: "front desk", "operator", "representative", "receptionist", "human", "a person", "someone"
+- These are NOT staff name requests - they're requests for general assistance
+- Do NOT use Direct Staff Request for these
+
+**Uncertain Routing:**
+- After 2 clarifying questions, caller's purpose is still unclear
+- Caller's responses don't match any known caller type patterns
+- You find yourself about to repeat a question you already asked
+- You're genuinely uncertain which destination is correct
+- The conversation is going in circles
+
+This is NOT a failure - it's the correct action for general help requests and when classification is genuinely difficult.
+
+You do NOT need to collect specific information before handoff:
+1. Pass whatever you have (caller_name if collected, purpose if understood)
+2. The Fallback Line agent will handle getting them to the right place
+
+Do NOT use this destination if:
+- You have enough information to route to a specific agent (e.g., existing client, insurance adjuster, new client, etc.)
+- Caller asks for a specific staff member by name (use Direct Staff Request)
+```
+
+**Variables Expected:**
+| Variable | Required | Description |
+|----------|----------|-------------|
+| caller_name | Optional | If collected |
+| purpose | Optional | Best understanding of why they're calling |
+| frustration_level | Yes | 0-3 scale |
+
+---
+
 ## Quick Reference Table
 
 | # | Agent | Required Variables | Key Trigger Phrases |
@@ -504,6 +565,7 @@ Do NOT use this destination if:
 | 10 | Referral Source | caller_name, client_name | "I referred", "referral fee" |
 | 11 | Legal System | caller_name, organization | "court reporter", "deposition", "subpoena" |
 | 12 | Sales Solicitation | (none required) | "our services", "decision maker" |
+| 13 | Fallback Line | (none required) | "operator", "receptionist", uncertain routing |
 
 ---
 
@@ -515,6 +577,19 @@ Do NOT use this destination if:
 4. **Medical + Billing = Vendor** - Medical billing goes to Vendor, not Medical Provider
 5. **Spanish = QUICK** - Don't delay Spanish speakers collecting info
 6. **Existing Client + New Matter = New Client** - If caller has an existing case BUT wants representation for a NEW/DIFFERENT matter, route to New Client (new intake), not Existing Client
+
+7. **New Case = HIGHEST PRIORITY (Non-Professional Callers)** - If ANY non-professional caller describes a NEW accident, injury, or incident that could be a legal matter, route to New Client (intake). This takes priority over:
+   - Family member relationship → Route to New Client, not Family Member
+   - Existing client status → Route to New Client, not Existing Client
+
+   Key signal: Caller describes something that HAPPENED (an incident/injury) vs asking about something that EXISTS (a case already with the firm).
+
+   Examples:
+   - "My daughter had surgery complications" → New Client (new incident)
+   - "I'm a client but I was just in a car accident" → New Client (new incident)
+   - "My husband was hit by a car yesterday" → New Client (new incident)
+   - "I'm calling about my mom's case" → Family Member (existing case)
+   - "I want an update on my case" → Existing Client (existing case)
 
 ---
 
