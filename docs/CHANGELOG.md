@@ -4,6 +4,78 @@ All notable changes to the VAPI Squad Prompts are documented in this file.
 
 ---
 
+## [2026-01-19] - Correction: Remove take_message tool
+
+**Issue:** Previous sync incorrectly retained `take_message` tool which does NOT exist in production.
+
+**Production has only 3 shared tools:**
+- transfer_call (function)
+- search_case_details (apiRequest)
+- staff_directory_lookup (query)
+
+**Files corrected:**
+- agent_tools.json - Removed take_message definition and from all tool_assignments, removed priority_mapping section
+- README.md - Removed take_message references from tool setup instructions
+- 06_new_client.md - Removed take_message usage from message taking flow
+- 13_sales_solicitation.md - Updated to politely decline sales calls (now has no tools)
+- 14_fallback_line.md - Removed take_message usage, updated to ask callers to call back
+
+---
+
+## [2026-01-19] - Production Config Sync
+
+### Sync: Local Documentation Aligned with Production Squad
+
+**Summary:** Compared production squad config (Receptionist Pro - Prod v123101) against local files in `/prompts/squad/lenient/` and resolved 23 inconsistencies.
+
+**Files Changed:**
+
+1. `vapi_id_mapping.json`
+   - Added `fallback_line` ID: `3d9c6151-63dc-416b-85f8-8c5e45e45c94` to production.assistants
+   - Added `fallback_line` to quick_reference section
+
+2. `prompts/squad/lenient/handoff_tools/agent_tools.json`
+   - Renamed `classify_and_route_call` → `transfer_call` (matches production tool name)
+   - Updated transfer_call parameters to match production schema (caller_type, firm_id, staff_id, staff_name, caller_name, client_name, reason)
+   - Updated tool_assignments to remove staff_directory_lookup from agents that don't have it in production (insurance, medical_provider, new_client, vendor, family_member, spanish_speaker, legal_system)
+   - Added 14_fallback_line to tool_assignments
+   - Removed frustration_level from priority_mapping rules
+
+3. `prompts/squad/lenient/handoff_tools/greeter_handoff_tool.json`
+   - Added Fallback Line destination with variableExtractionPlan
+   - Removed frustration_level from ALL 12 existing destinations' variableExtractionPlan schemas
+
+4. `prompts/squad/lenient/vapi_variable_extraction_plans.md`
+   - Removed frustration_level from all 12 existing sections
+   - Added Section 13: Fallback Line with purpose and caller_name variables
+   - Updated Quick Copy Reference examples (removed frustration_level, added Fallback Line)
+   - Updated Notes section (removed frustration_level guidance, added Fallback Line guidance)
+
+5. `prompts/squad/lenient/vapi_config/assistant_settings.json`
+   - Updated default model: `gpt-4o` → `gpt-4.1`
+   - Updated voice config: 11labs → Cartesia sonic-3, voiceId `8d8ce8c9-44a4-46c4-b10f-9a927b99a853`
+   - Updated transcriber: nova-2 → flux-general-en
+   - Added per-agent overrides documenting production membersOverrides:
+     - greeter: chatgpt-4o-latest, custom voice a38e4e85-e815-43ab-acf1-907c4688dd6c
+     - insurance_adjuster: chatgpt-4o-latest
+     - medical_provider: chatgpt-4o-latest
+     - vendor: chatgpt-4o-latest
+     - spanish_speaker: chatgpt-4o-latest
+
+6. `prompts/squad/lenient/README.md`
+   - Updated model config instructions to reference gpt-4.1 and agent_specific_overrides
+   - Updated voice config to Cartesia with correct voiceIds
+   - Updated tool names: classify_and_route_call → transfer_call
+   - Removed frustration_level from Variable Extraction section
+   - Added Fallback Line to transfer-only agents list
+
+**Decisions Made:**
+- Kept `search_case_details` as type `function` locally (production uses `apiRequest` but local uses placeholders for portability)
+- Removed frustration_level entirely (not present in production variableExtractionPlan schemas)
+- Local docs now match production tool names, assignments, and configurations
+
+---
+
 ## [2026-01-02] - Call Quality Improvements
 
 ### Issue #1: Existing Client with New Matter Routed Incorrectly

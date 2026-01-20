@@ -3,25 +3,24 @@
 
   "model": {
     "provider": "openai",
-    "model": "gpt-4o",
+    "model": "gpt-4.1",
     "temperature": 0.7,
     "maxTokens": 250,
-    "_notes": "gpt-4o for best classification and routing accuracy. Lower maxTokens to keep responses brief."
+    "_notes": "gpt-4.1 as global default. Per-agent overrides apply via membersOverrides."
   },
 
   "voice": {
-    "provider": "11labs",
-    "voiceId": "{{VOICE_ID}}",
-    "stability": 0.5,
-    "similarityBoost": 0.75,
-    "_notes": "Use a warm, professional female voice. Recommended: 'Rachel' or similar."
+    "provider": "cartesia",
+    "model": "sonic-3",
+    "voiceId": "8d8ce8c9-44a4-46c4-b10f-9a927b99a853",
+    "_notes": "Cartesia sonic-3 for natural-sounding voice. Global default voiceId."
   },
 
   "transcriber": {
     "provider": "deepgram",
-    "model": "nova-2",
+    "model": "flux-general-en",
     "language": "en-US",
-    "_notes": "nova-2 for best accuracy with American English accents."
+    "_notes": "flux-general-en for best accuracy with American English accents."
   },
 
   "firstMessage": {
@@ -105,11 +104,38 @@
   },
 
   "agent_specific_overrides": {
-    "_description": "Agent-specific setting overrides",
+    "_description": "Agent-specific setting overrides. These are applied via squad membersOverrides in production.",
 
     "greeter_classifier": {
+      "model": "chatgpt-4o-latest",
+      "voice": {
+        "provider": "cartesia",
+        "model": "sonic-3",
+        "voiceId": "a38e4e85-e815-43ab-acf1-907c4688dd6c"
+      },
       "maxTokens": 150,
-      "_note": "Greeter needs shortest responses - just collecting info and routing"
+      "_note": "Greeter has custom voice (different voiceId) and uses chatgpt-4o-latest"
+    },
+
+    "insurance_adjuster": {
+      "model": "chatgpt-4o-latest",
+      "_note": "Uses chatgpt-4o-latest for insurance adjuster interactions"
+    },
+
+    "medical_provider": {
+      "model": "chatgpt-4o-latest",
+      "_note": "Uses chatgpt-4o-latest for medical provider interactions"
+    },
+
+    "vendor": {
+      "model": "chatgpt-4o-latest",
+      "_note": "Uses chatgpt-4o-latest for vendor interactions"
+    },
+
+    "spanish_speaker": {
+      "model": "chatgpt-4o-latest",
+      "maxTokens": 50,
+      "_note": "Uses chatgpt-4o-latest. Very brief - just acknowledgment and transfer"
     },
 
     "new_client": {
@@ -120,11 +146,6 @@
     "sales_solicitation": {
       "maxTokens": 100,
       "_note": "Keep very brief - just taking message and ending call"
-    },
-
-    "spanish_speaker": {
-      "maxTokens": 50,
-      "_note": "Very brief - just acknowledgment and transfer"
     }
   }
 }

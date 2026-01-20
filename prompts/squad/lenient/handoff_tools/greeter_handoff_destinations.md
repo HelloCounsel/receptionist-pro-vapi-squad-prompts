@@ -83,7 +83,6 @@ Do NOT use this destination if:
 |----------|----------|-------------|
 | caller_name | Yes | Full name of the caller - MUST collect before handoff |
 | purpose | Yes | What they're calling about (case update, speak to case manager, etc.) |
-| frustration_level | Yes | 0-3 scale based on tone |
 
 ---
 
@@ -125,7 +124,6 @@ Collect if possible (but don't block handoff):
 | organization_name | Preferred | Insurance company name |
 | client_name | Optional | The client/claimant they're calling about |
 | purpose | Yes | What they need (case status, case manager contact, etc.) |
-| frustration_level | Yes | 0-3 scale |
 
 ---
 
@@ -168,7 +166,6 @@ Collect if possible:
 | organization_name | Preferred | Hospital/clinic name |
 | client_name | Preferred | Patient name they're calling about |
 | purpose | Yes | What they need |
-| frustration_level | Yes | 0-3 scale |
 
 ---
 
@@ -217,7 +214,6 @@ Do NOT use this destination if:
 |----------|----------|-------------|
 | caller_name | Yes | Name of the caller - MUST collect before handoff |
 | purpose | Yes | Type of accident or what they're asking about |
-| frustration_level | Yes | 0-3 scale (often elevated due to recent accident) |
 
 ---
 
@@ -257,7 +253,6 @@ If the caller has not provided their name yet:
 | caller_name | Yes | Name of the caller - MUST collect before handoff |
 | organization_name | Preferred | Company/facility name |
 | purpose | Yes | Invoice inquiry, payment status, etc. |
-| frustration_level | Yes | 0-3 scale |
 
 ---
 
@@ -310,7 +305,6 @@ If caller says a role but doesn't know the specific name → Route to fallback_l
 | target_staff_name | Yes | The staff member's name the caller asked for - MUST have this |
 | caller_name | Yes | Caller's name - ask before handoff |
 | purpose | Optional | Why they want to speak with this person |
-| frustration_level | Yes | 0-3 scale |
 
 ---
 
@@ -350,7 +344,6 @@ Do NOT use this destination if:
 | caller_name | Yes | Name of the person calling (the family member) - MUST collect |
 | client_name | Yes | Name of the actual client whose case it is - MUST collect |
 | purpose | Yes | What they're calling about |
-| frustration_level | Yes | 0-3 scale |
 
 ---
 
@@ -385,7 +378,6 @@ Do NOT use this destination if:
 |----------|----------|-------------|
 | caller_name | Optional | If provided, pass it along |
 | purpose | Optional | If understood, pass it along |
-| frustration_level | Yes | Often elevated due to language barrier |
 
 ---
 
@@ -423,7 +415,6 @@ Do NOT use this destination if:
 | caller_name | Yes | Name of the referrer - MUST collect before handoff |
 | client_name | Preferred | Name of the person they referred |
 | purpose | Yes | What they're asking about (referral fee, status, etc.) |
-| frustration_level | Yes | 0-3 scale |
 
 ---
 
@@ -463,7 +454,6 @@ Do NOT use this destination if:
 | organization_name | Preferred | Court, law firm, or company name |
 | client_name | Preferred | The case/client they're calling about |
 | purpose | Yes | Deposition scheduling, document service, etc. |
-| frustration_level | Yes | 0-3 scale |
 
 ---
 
@@ -501,7 +491,6 @@ Do NOT use this destination if:
 | caller_name | Optional | If provided |
 | organization_name | Optional | Company they're representing |
 | purpose | Optional | What they're selling |
-| frustration_level | Yes | Usually 0-1 |
 
 ---
 
@@ -545,7 +534,6 @@ Do NOT use this destination if:
 |----------|----------|-------------|
 | caller_name | Optional | If collected |
 | purpose | Optional | Best understanding of why they're calling |
-| frustration_level | Yes | 0-3 scale |
 
 ---
 
@@ -591,13 +579,3 @@ Do NOT use this destination if:
    - "I'm calling about my mom's case" → Family Member (existing case)
    - "I want an update on my case" → Existing Client (existing case)
 
----
-
-## Frustration Level Scale
-
-| Level | Indicators | Message Priority |
-|-------|------------|------------------|
-| 0 | Calm, patient, neutral tone | standard |
-| 1 | Slightly rushed, minor impatience | standard |
-| 2 | Noticeably frustrated, short responses, sighing | high |
-| 3 | Angry, upset, demanding, emotional distress | urgent |

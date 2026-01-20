@@ -31,7 +31,8 @@
       "direct_staff_requests": "55bad977-4713-4999-8df6-bb9d92b5fcd4",
       "spanish_speaker": "cc0ac920-edd9-4f05-98b0-4126328b8595",
       "legal_system_caller": "9368ee40-73c8-4386-a95b-4d19b712a20d",
-      "family_member": "f7e36df2-117b-4f72-a77f-5ac55f64b6e3"
+      "family_member": "f7e36df2-117b-4f72-a77f-5ac55f64b6e3",
+      "fallback_line": "3d9c6151-63dc-416b-85f8-8c5e45e45c94"
     }
   },
   "quick_reference": {
@@ -74,6 +75,10 @@
     "family_member": {
       "sandbox": null,
       "production": "f7e36df2-117b-4f72-a77f-5ac55f64b6e3"
+    },
+    "fallback_line": {
+      "sandbox": null,
+      "production": "3d9c6151-63dc-416b-85f8-8c5e45e45c94"
     }
   }
 }

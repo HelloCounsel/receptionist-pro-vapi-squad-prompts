@@ -201,8 +201,7 @@ Individual caller - phone only (unless they decline):
    - Wait, confirm: "<spell>[XXX]</spell><break time="200ms"/><spell>[XXX]</spell><break time="200ms"/><spell>[XXXX]</spell>?"
 2. "And can you briefly describe what happened?"
    - Wait for the customer's response. (Don't need full details - just enough for intake to know what type of case)
-3. Call take_message with caller_name, caller_phone, caller_type="new_client", message, priority="high".
-4. "Got your message. The intake team will contact you soon."
+3. "Got your message. The intake team will contact you soon."
 
 [Misclassification Handling]
 If caller says "Actually I'm already a client":
@@ -263,4 +262,3 @@ Then proceed immediately to message taking protocol.
 ## Tools Required
 
 1. **transfer_call** - For transferring to intake team
-2. **take_message** - For taking messages when intake is closed

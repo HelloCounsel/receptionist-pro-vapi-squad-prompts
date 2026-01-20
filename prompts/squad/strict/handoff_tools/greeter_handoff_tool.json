@@ -25,10 +25,6 @@
               "type": "string",
               "description": "What the caller needs help with"
             },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
-            }
           }
         }
       }
@@ -56,10 +52,6 @@
             "purpose": {
               "type": "string",
               "description": "What the caller needs help with"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -96,10 +88,6 @@
             "purpose": {
               "type": "string",
               "description": "What they need (case update, case manager contact, etc.)"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -136,10 +124,6 @@
             "purpose": {
               "type": "string",
               "description": "What they need (case manager contact, case status, etc.)"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -168,10 +152,6 @@
             "purpose": {
               "type": "string",
               "description": "Brief description of their situation"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -204,10 +184,6 @@
             "purpose": {
               "type": "string",
               "description": "Invoice/billing details"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -236,10 +212,6 @@
             "purpose": {
               "type": "string",
               "description": "Why they want to speak with this person (if stated)"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -272,10 +244,6 @@
             "purpose": {
               "type": "string",
               "description": "What they need"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -300,10 +268,6 @@
             "caller_type": {
               "type": "string",
               "description": "SPANISH_SPEAKING"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -336,10 +300,6 @@
             "purpose": {
               "type": "string",
               "description": "What they need (referral fee inquiry, status check, etc.)"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -376,10 +336,6 @@
             "purpose": {
               "type": "string",
               "description": "What they need"
-            },
-            "frustration_level": {
-              "type": "number",
-              "description": "0=Calm, 1=Mild concern, 2=Frustrated, 3=Very frustrated"
             }
           }
         }
@@ -412,6 +368,30 @@
             "purpose": {
               "type": "string",
               "description": "What they're selling/offering"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "assistantName": "Fallback Line",
+      "description": "Safety net for general help requests or uncertain routing. Use when: (1) Caller asks for 'operator', 'receptionist', 'front desk', 'human', 'someone', 'a person' - general help requests, (2) Caller's purpose unclear after 2 clarifying questions, (3) Responses don't match any known caller type, (4) You're about to repeat a question already asked, (5) Genuinely uncertain which destination is correct. RESOLVING with fallback is better than getting stuck in a loop.",
+      "contextEngineeringPlan": {
+        "type": "lastNMessages",
+        "maxMessages": 5
+      },
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "purpose": {
+              "type": "string",
+              "description": "Why they're calling (if understood)"
+            },
+            "caller_name": {
+              "type": "string",
+              "description": "The caller's name - REQUIRED before handoff"
             }
           }
         }
