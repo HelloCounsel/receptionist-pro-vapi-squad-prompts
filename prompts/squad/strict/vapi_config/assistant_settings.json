@@ -1,0 +1,130 @@
+{
+  "_description": "Common assistant settings for VAPI dashboard. Apply these settings to all assistants.",
+
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "temperature": 0.7,
+    "maxTokens": 250,
+    "_notes": "gpt-4o for best classification and routing accuracy. Lower maxTokens to keep responses brief."
+  },
+
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "{{VOICE_ID}}",
+    "stability": 0.5,
+    "similarityBoost": 0.75,
+    "_notes": "Use a warm, professional female voice. Recommended: 'Rachel' or similar."
+  },
+
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-2",
+    "language": "en-US",
+    "_notes": "nova-2 for best accuracy with American English accents."
+  },
+
+  "firstMessage": {
+    "_greeter": {
+      "firstMessage": "{{firm_name}}, this is {{agent_name}}. Who am I speaking with?",
+      "firstMessageMode": "assistant-speaks-first"
+    },
+    "_specialized_agents": {
+      "firstMessage": "",
+      "firstMessageMode": "assistant-speaks-first-with-model-generated-message"
+    }
+  },
+
+  "silenceTimeoutSeconds": 30,
+  "maxDurationSeconds": 600,
+  "backgroundSound": "off",
+  "backchannelingEnabled": true,
+
+  "serverMessages": [
+    "end-of-call-report",
+    "status-update",
+    "tool-calls"
+  ],
+
+  "analysisPlan": {
+    "summaryPrompt": "Summarize this call in 2-3 sentences. Include: caller type, main purpose, outcome (transferred/message taken/info provided), and any follow-up needed.",
+    "structuredDataPrompt": "Extract: caller_name, caller_type, client_name (if different), purpose, outcome, priority_level",
+    "successEvaluationPrompt": "Evaluate if the call was handled successfully. Consider: Was the caller routed correctly? Was their need addressed? Were they treated professionally?"
+  },
+
+  "endCallPhrases": [
+    "goodbye",
+    "bye",
+    "thank you bye",
+    "thanks bye",
+    "that's all",
+    "have a good day"
+  ],
+
+  "clientMessages": [
+    "conversation-update",
+    "function-call",
+    "hang",
+    "model-output",
+    "speech-update",
+    "status-update",
+    "transcript",
+    "tool-calls",
+    "user-interrupted",
+    "voice-input"
+  ],
+
+  "hipaaEnabled": false,
+  "_hipaa_note": "Enable if handling PHI. May affect transcription accuracy.",
+
+  "responseDelaySeconds": 0.4,
+  "_response_delay_note": "Small delay feels more natural than instant responses.",
+
+  "llmRequestDelaySeconds": 0.1,
+
+  "numWordsToInterruptAssistant": 2,
+  "_interrupt_note": "Allow callers to interrupt with just 2 words for natural conversation.",
+
+  "voicemailDetection": {
+    "enabled": true,
+    "provider": "twilio",
+    "voicemailDetectionTypes": ["machine_end_beep", "machine_end_silence"],
+    "machineDetectionTimeout": 30,
+    "machineDetectionSpeechThreshold": 3500,
+    "machineDetectionSpeechEndThreshold": 1200,
+    "machineDetectionSilenceTimeout": 5000
+  },
+
+  "variableValues": {
+    "_description": "Default variable values. Override these per-firm in production.",
+    "firm_name": "{{FIRM_NAME}}",
+    "firm_id": "{{FIRM_ID}}",
+    "agent_name": "Sarah",
+    "is_open": true,
+    "intake_is_open": true
+  },
+
+  "agent_specific_overrides": {
+    "_description": "Agent-specific setting overrides",
+
+    "greeter_classifier": {
+      "maxTokens": 150,
+      "_note": "Greeter needs shortest responses - just collecting info and routing"
+    },
+
+    "new_client": {
+      "temperature": 0.8,
+      "_note": "Slightly warmer for empathetic responses to accident victims"
+    },
+
+    "sales_solicitation": {
+      "maxTokens": 100,
+      "_note": "Keep very brief - just taking message and ending call"
+    },
+
+    "spanish_speaker": {
+      "maxTokens": 50,
+      "_note": "Very brief - just acknowledgment and transfer"
+    }
+  }
+}

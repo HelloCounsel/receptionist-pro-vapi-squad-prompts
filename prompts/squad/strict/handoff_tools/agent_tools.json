@@ -1,0 +1,222 @@
+{
+  "_description": "Common tools used by specialized agents. Copy relevant tools to each assistant in VAPI dashboard.",
+
+  "tools": {
+    "search_case_details": {
+      "_description": "Case lookup tool - used by Pre-ID Client, Existing Client, Insurance, Medical Provider, Legal System agents",
+      "type": "function",
+      "function": {
+        "name": "search_case_details",
+        "description": "Search for case details by client name. Returns case manager info, case status, and other relevant details.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "client_name": {
+              "type": "string",
+              "description": "Full name of the client to search for"
+            },
+            "firm_id": {
+              "type": "string",
+              "description": "The firm identifier (use {{firm_id}} from context)"
+            },
+            "client_dob": {
+              "type": "string",
+              "description": "Client date of birth in MM/DD/YYYY format (optional, for disambiguation)"
+            },
+            "incident_date": {
+              "type": "string",
+              "description": "Date of incident in MM/DD/YYYY format (optional, for disambiguation)"
+            }
+          },
+          "required": ["client_name", "firm_id"]
+        }
+      },
+      "server": {
+        "url": "{{SEARCH_CASE_ENDPOINT}}"
+      }
+    },
+
+    "classify_and_route_call": {
+      "_description": "Transfer/routing tool - used by most agents for transfers. ONLY call after explicit consent.",
+      "type": "function",
+      "function": {
+        "name": "classify_and_route_call",
+        "description": "Execute a call transfer. CRITICAL: Only call this AFTER the caller explicitly consents to the transfer (says yes/yeah/sure/okay). Do NOT call if they say no or express hesitation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "call_type": {
+              "type": "string",
+              "description": "The destination for the transfer",
+              "enum": [
+                "new_case",
+                "customer_success",
+                "insurance",
+                "vendor",
+                "spanish",
+                "other"
+              ]
+            },
+            "staff_id": {
+              "type": "number",
+              "description": "Specific staff member ID for direct transfers (use with call_type='other')"
+            },
+            "case_manager_id": {
+              "type": "number",
+              "description": "Case manager ID for case-specific transfers"
+            },
+            "case_manager": {
+              "type": "string",
+              "description": "Case manager name (informational)"
+            }
+          },
+          "required": ["call_type"]
+        }
+      },
+      "server": {
+        "url": "{{CLASSIFY_ROUTE_ENDPOINT}}"
+      }
+    },
+
+    "take_message": {
+      "_description": "Message taking tool - used by all agents for after-hours or when transfer declined",
+      "type": "function",
+      "function": {
+        "name": "take_message",
+        "description": "Record a message for follow-up callback. Use when office is closed, transfer fails, or caller declines transfer.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "caller_name": {
+              "type": "string",
+              "description": "Name of the caller"
+            },
+            "caller_phone": {
+              "type": "string",
+              "description": "Callback phone number"
+            },
+            "caller_email": {
+              "type": "string",
+              "description": "Email address (primarily for business callers)"
+            },
+            "caller_type": {
+              "type": "string",
+              "description": "Type of caller for routing the callback",
+              "enum": [
+                "new_client",
+                "existing_client",
+                "insurance_adjuster",
+                "medical_provider",
+                "vendor",
+                "legal_system",
+                "referral_source",
+                "family_member",
+                "spanish_speaker",
+                "sales",
+                "other"
+              ]
+            },
+            "organization_name": {
+              "type": "string",
+              "description": "Company/organization name (for business callers)"
+            },
+            "client_name": {
+              "type": "string",
+              "description": "Name of the client the call is about (if different from caller)"
+            },
+            "case_manager": {
+              "type": "string",
+              "description": "Case manager name if known"
+            },
+            "staff_id": {
+              "type": "number",
+              "description": "Specific staff member ID if message is for them"
+            },
+            "message": {
+              "type": "string",
+              "description": "The message content - what they want to communicate"
+            },
+            "priority": {
+              "type": "string",
+              "description": "Message priority level",
+              "enum": ["urgent", "high", "standard", "low"]
+            }
+          },
+          "required": ["caller_name", "caller_phone", "caller_type", "message", "priority"]
+        }
+      },
+      "server": {
+        "url": "{{TAKE_MESSAGE_ENDPOINT}}"
+      }
+    },
+
+    "staff_directory_lookup": {
+      "_description": "RAG-based staff directory lookup - used by all agents for staff name searches",
+      "type": "query",
+      "function": {
+        "name": "staff_directory_lookup",
+        "description": "Search staff directory by name. Returns matching staff members with contact details (phone, email, staff_id). Use this to look up specific staff members when callers ask for someone by name.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      "knowledgeBases": [
+        {
+          "name": "Bey_and_associates_staff_directory",
+          "provider": "google",
+          "model": "gemini-2.0-flash",
+          "description": "Bey & Associates Staff Directory"
+        }
+      ]
+    }
+  },
+
+  "tool_assignments": {
+    "_description": "Which tools each agent needs",
+    "01_greeter_classifier": ["handoff_tool", "staff_directory_lookup"],
+    "02_pre_identified_client": ["search_case_details", "staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "03_existing_client": ["search_case_details", "staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "04_insurance_adjuster": ["search_case_details", "staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "05_medical_provider": ["search_case_details", "staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "06_new_client": ["staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "07_vendor": ["staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "08_direct_staff_request": ["staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "09_family_member": ["staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "10_spanish_speaker": ["staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "11_referral_source": ["staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "12_legal_system": ["search_case_details", "staff_directory_lookup", "classify_and_route_call", "take_message"],
+    "13_sales_solicitation": ["take_message"]
+  },
+
+  "priority_mapping": {
+    "_description": "How to determine message priority based on context",
+    "rules": [
+      {
+        "condition": "frustration_level >= 3",
+        "priority": "urgent"
+      },
+      {
+        "condition": "frustration_level >= 2",
+        "priority": "high"
+      },
+      {
+        "condition": "caller_type == 'new_client'",
+        "priority": "high"
+      },
+      {
+        "condition": "purpose contains 'deadline' or 'court date'",
+        "priority": "high"
+      },
+      {
+        "condition": "caller_type == 'sales'",
+        "priority": "low"
+      },
+      {
+        "condition": "default",
+        "priority": "standard"
+      }
+    ]
+  }
+}
