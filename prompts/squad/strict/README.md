@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a 10-agent VAPI squad system for handling incoming calls at Bey & Associates personal injury law firm.
+This is an 11-agent VAPI squad system for handling incoming calls at Bey & Associates personal injury law firm.
 
 **Architecture:** Caller-type-based specialization where each specialized agent handles the complete flow (lookup → info → transfer → message).
 
@@ -22,6 +22,7 @@ This is a 10-agent VAPI squad system for handling incoming calls at Bey & Associ
 | 8 | Family Member | Third-party callers |
 | 9 | Spanish Speaker | Spanish transfer wrapper |
 | 10 | Legal System | Court reporters, defense attorneys |
+| 11 | Fallback Line | Safety net - routes to customer success or message |
 
 ## Setup Instructions
 
@@ -67,7 +68,7 @@ firstMessageMode: "assistant-speaks-first-with-model-generated-message"
 ### Step 4: Create Squad
 
 1. Go to VAPI Dashboard → Squads → Create New
-2. Add the 10 active assistants as members
+2. Add the 11 active assistants as members
 3. Set **Greeter Classifier** as the start member (`isStartMember: true`)
 4. Apply member overrides from `vapi_config/assistant_settings.json`
 
@@ -95,7 +96,7 @@ prompts/squad/
 ├── assistants/                  # System prompts (copy to VAPI)
 │   ├── 01_greeter_classifier.md
 │   ├── 03_existing_client.md
-│   └── ... (10 active + 3 WIP)
+│   └── ... (11 active + 2 WIP)
 ├── handoff_tools/               # Tool configurations
 │   ├── greeter_handoff_tool.json
 │   ├── greeter_handoff_destinations.md
@@ -119,6 +120,7 @@ prompts/squad/
 - 09_family_member.md
 - 10_spanish_speaker.md
 - 12_legal_system.md
+- 14_fallback_line.md
 
 **WIP (not deployed):**
 - 11_referral_source.md
