@@ -60,7 +60,7 @@
     {
       "type": "assistant",
       "assistantName": "Insurance Adjuster",
-      "description": "Caller from insurance company: 'calling from State Farm/Progressive/GEICO/Allstate/USAA/Liberty Mutual/Farmers', 'I'm the adjuster', 'regarding a claim', 'insurance representative'. CRITICAL: Even if they mention billing, payment, or invoice - insurance callers ALWAYS route here, NEVER to Vendor.",
+      "description": "Caller from insurance company: 'calling from State Farm/Progressive/GEICO/Allstate/USAA/Liberty Mutual/Farmers', 'I'm the adjuster', 'regarding a claim', 'insurance representative'. Also matches: 'with [Company] claims', '[Company] claims department', asks about LOR/Letter of Representation, mentions 'on a recorded line'. If caller mentions ANY insurance company name and is asking about a client case, route here even without explicit role statement. CRITICAL: Even if they mention billing, payment, or invoice - insurance callers ALWAYS route here, NEVER to Vendor.",
       "contextEngineeringPlan": {
         "type": "lastNMessages",
         "maxMessages": 5
@@ -96,7 +96,7 @@
     {
       "type": "assistant",
       "assistantName": "Medical Provider",
-      "description": "Caller from hospital, clinic, rehab center, medical facility about a patient - NOT about billing/payment/invoice. Keywords: 'calling from [Hospital/Clinic]', 'about a patient', 'patient records'. If they mention billing/payment AND are from medical facility, route to Vendor instead.",
+      "description": "Caller from hospital, clinic, rehab center, medical facility about a patient - NOT about billing/payment/invoice. Keywords: 'calling from [Hospital/Clinic]', 'about a patient', 'patient records'. Also route here for: companies calling ON BEHALF OF a hospital/medical facility, medical lien companies, medical records retrieval services, lien resolution services, ANY caller mentioning a patient/client name who wants case information or status update (unless clearly insurance). Key signal: If caller provides a specific patient/client name and wants case status from ANY organization, route here. If they mention billing/payment AND are from medical facility, route to Vendor instead.",
       "contextEngineeringPlan": {
         "type": "lastNMessages",
         "maxMessages": 5
@@ -376,7 +376,7 @@
     {
       "type": "assistant",
       "assistantName": "Fallback Line",
-      "description": "Safety net for general help requests or uncertain routing. Use when: (1) Caller asks for 'operator', 'receptionist', 'front desk', 'human', 'someone', 'a person' - general help requests, (2) Caller's purpose unclear after 2 clarifying questions, (3) Responses don't match any known caller type, (4) You're about to repeat a question already asked, (5) Genuinely uncertain which destination is correct. RESOLVING with fallback is better than getting stuck in a loop.",
+      "description": "Safety net for general help requests or uncertain routing. Use when: (1) Caller asks for 'operator', 'receptionist', 'front desk', 'human', 'someone', 'a person' - general help requests, (2) Caller's purpose unclear after 2 clarifying questions, (3) Responses don't match any known caller type, (4) You're about to repeat a question already asked, (5) Genuinely uncertain which destination is correct. CRITICAL: If you have the caller's name and purpose but cannot confidently match to a specific destination, use fallback IMMEDIATELY. Do NOT continue asking clarifying questions beyond 2 exchanges. Do NOT say 'I'll get you to the right person' without calling a handoff tool in the same turn. Better to route to fallback than leave caller hanging or get stuck in a loop.",
       "contextEngineeringPlan": {
         "type": "lastNMessages",
         "maxMessages": 5

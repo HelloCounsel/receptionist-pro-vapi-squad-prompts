@@ -17,7 +17,9 @@ AI receptionist system for Bey & Associates personal injury law firm. This repos
 │           └── (same structure)
 │
 ├── docs/
-│   └── CHANGELOG.md                    # Issue tracking and fixes
+│   ├── CHANGELOG.md                    # Issue tracking and fixes
+│   ├── new_firm_onboarding.md          # Onboarding questionnaire for new firms
+│   └── vapi_squad_reference.md         # VAPI squad architecture reference
 │
 ├── scripts/                            # Python utilities for VAPI integration
 ├── data/                               # Script outputs and configs
@@ -220,3 +222,4 @@ Each handoff includes `variableExtractionPlan` to pass context:
 - [ ] Misclassification → customer success escalation
 - [ ] After-hours handling
 - [ ] Frustrated caller → priority escalation
+- [ ] Fallback line → customer success transfer (verify transfer_call invoked within 5s of handoff)

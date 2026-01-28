@@ -4,6 +4,404 @@ All notable changes to the VAPI Squad Prompts are documented in this file.
 
 ---
 
+## [2026-01-28] - Fallback Line Agent Delayed Transfer Fix
+
+### Fix: Fallback Line Agent 36-Second Transfer Delay
+
+**Problem:** The fallback_line agent took 36 seconds to transfer a caller to customer success. VAPI's silence handling triggered "Are you still there?" twice during this delay.
+
+**Evidence from call logs:**
+- 12:46:28 - Greeter calls `handoff_to_fallback_line`
+- 12:46:31 - Fallback_line speaks: "Let me get you to someone who can help." (correct)
+- 12:46:31 - **No transfer_call tool invoked** (problem)
+- 12:46:44 - "Are you still there?" asked (silence timeout)
+- 12:46:47 - User says "Yes" → Agent says "Great—connecting you now."
+- 12:47:00 - "Are you still there?" asked again (second silence timeout)
+- 12:47:04 - **Finally calls transfer_call** (36 seconds after handoff)
+
+**Root Cause:** The fallback_line agent did NOT invoke `transfer_call` simultaneously with its acknowledgment speech. Unlike other agents that use a two-turn consent flow (ask "Is that okay?" → wait for response → call tool), the fallback_line agent had no consent question. Without a question, there's no guaranteed second turn where the model knows it must act.
+
+**Pattern Comparison:**
+
+| Agent | Flow | Works? |
+|-------|------|--------|
+| Spanish Speaker | "Let me connect you. **Is that okay?**" → Wait → Call tool | ✅ |
+| Fallback Line (before) | "Let me get you to someone." → IMMEDIATELY call tool | ❌ |
+| Fallback Line (after) | "Let me get you to someone. **Is that alright?**" → Wait → Call tool | ✅ |
+
+The consent question creates a **guaranteed second turn** where the model receives new input and must respond with a tool call.
+
+**Solution:**
+
+1. **Added two-turn consent flow** (like spanish_speaker uses):
+   - Before: "Let me get you to someone who can help." + IMMEDIATELY call transfer_call
+   - After: "Let me get you to someone who can help. **Is that alright?**" → Wait for confirmation → Call transfer_call
+
+2. **Added `[Tool Call Rules - CRITICAL]` section** to enforce simultaneous speech + tool call:
+   - WRONG: Saying "Okay, let me transfer you" → then waiting → then calling the tool later
+   - CORRECT: Call the tool in the same turn as your acknowledgment
+
+3. **Added `⚠️ UNDERSTANDING YOUR ROLE IN HANDOFFS` section** to System Context to clarify agent's role when receiving handoffs
+
+4. **Added `⚠️ SILENCE RULES` section** scoped to agent's OWN tool calls (not incoming handoffs)
+
+5. **Updated firstMessageMode** from `assistant-speaks-first` to `assistant-speaks-first-with-model-generated-message` to match other agents
+
+6. **Added message taking for after hours** - Previously just asked callers to "call back", now takes a message like other agents do
+
+**Files Changed:**
+
+1. `prompts/squad/strict/assistants/14_fallback_line.md`
+   - Added `⚠️ UNDERSTANDING YOUR ROLE IN HANDOFFS` to System Context
+   - Updated `⚠️ NEVER SPEAK TOOL RESULTS ALOUD` with clearer scoping
+   - Added `[Tool Call Rules - CRITICAL]` section
+   - Added `⚠️ SILENCE RULES` section with "Handoff initiated" clarification
+   - Updated Step 1 to use two-turn consent flow: "Is that alright?" + wait + call
+   - Updated after hours flow: take message instead of asking to call back
+   - Added `[Message Taking]` section with phone number and message collection
+   - Updated `[Error Handling]` section with transfer failure handling and message fallback
+   - Added `[Voice Formatting]` section for phone number pronunciation
+   - Updated firstMessageMode to `assistant-speaks-first-with-model-generated-message`
+
+2. `prompts/squad/lenient/assistants/14_fallback_line.md`
+   - Same changes as strict variant
+
+**Expected Results After Fix:**
+- Total time from handoff to transfer: ~3-5 seconds (down from 36 seconds)
+- No silence timeouts triggering "Are you still there?"
+- `transfer_call` invoked in same model response as caller's confirmation
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above changes need to be applied in the VAPI dashboard:
+1. Update Fallback Line assistant prompt with new System Context and Task sections
+2. Update Fallback Line firstMessageMode to `assistant-speaks-first-with-model-generated-message`
+
+---
+
+## [2026-01-22] - Greeter Handoff Tool Description Improvements
+
+### Fix: Greeter Agent Failing to Hand Off to Sub-Agents
+
+**Problem:** The greeter agent successfully collected caller information but failed to execute handoff tools in certain scenarios. Three specific call patterns were identified:
+1. Insurance caller who said "with GEICO claims" but not "I'm an adjuster"
+2. Third-party company (Espirion) calling on behalf of a hospital (Emory)
+3. Unknown company (Lane Star) calling for case status update on a client
+
+**Root Cause:** Gaps in handoff tool description coverage:
+1. Insurance Adjuster destination required explicit role identification ("I'm an adjuster")
+2. Medical Provider destination didn't handle third-party intermediaries calling on behalf of hospitals
+3. No catch-all for unrecognized organizations calling about client cases
+4. Fallback trigger language wasn't strong enough to prevent agents from getting stuck
+
+**Solution:** Updated three handoff tool destination descriptions in both strict and lenient variants.
+
+**Changes Made:**
+
+1. **Insurance Adjuster Destination**
+   - Added patterns: "with [Company] claims", "[Company] claims department"
+   - Added triggers: asks about LOR/Letter of Representation, mentions "on a recorded line"
+   - Added rule: If caller mentions ANY insurance company name and is asking about a client case, route here even without explicit role statement
+
+2. **Medical Provider Destination**
+   - Added: companies calling ON BEHALF OF a hospital/medical facility
+   - Added: medical lien companies, medical records retrieval services, lien resolution services
+   - Added key signal: If caller provides a specific patient/client name and wants case status from ANY organization (unless clearly insurance), route here
+
+3. **Fallback Line Destination**
+   - Added CRITICAL rule: If you have caller's name and purpose but cannot confidently match to a specific destination, use fallback IMMEDIATELY
+   - Added: Do NOT continue asking clarifying questions beyond 2 exchanges
+   - Added: Do NOT say "I'll get you to the right person" without calling a handoff tool in the same turn
+   - Added: Better to route to fallback than leave caller hanging or get stuck in a loop
+
+**Files Changed:**
+1. `prompts/squad/strict/handoff_tools/greeter_handoff_tool.json` - Updated 3 destination descriptions
+2. `prompts/squad/lenient/handoff_tools/greeter_handoff_tool.json` - Updated 3 destination descriptions
+3. `prompts/squad/strict/handoff_tools/greeter_handoff_destinations.md` - Updated documentation for Insurance Adjuster, Medical Provider, and Fallback Line
+4. `prompts/squad/lenient/handoff_tools/greeter_handoff_destinations.md` - Updated documentation for Insurance Adjuster, Medical Provider, and Fallback Line
+
+**Expected Results After Fix:**
+- Insurance caller: "Hi, I'm calling from GEICO claims about George Pepi's case" → Routes to Insurance Adjuster
+- Medical intermediary: "Hi, I'm with Espirion calling on behalf of Emory Hospital about patient Valerie Franklin" → Routes to Medical Provider
+- Lien company: "Hi, I'm from Lane Star calling to get a status update on Derek Davis" → Routes to Medical Provider (as third-party case inquiry)
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above changes need to be applied in the VAPI dashboard:
+1. Update Greeter Classifier's handoff tool with new destination descriptions
+
+---
+
+## [2026-01-22] - New Firm Onboarding Questionnaire
+
+### Added: docs/new_firm_onboarding.md
+
+Comprehensive onboarding questionnaire for setting up the agent for new law firms. Questions are grounded in actual configuration levers.
+
+**Sections:**
+1. Firm Identity - variables for prompts (`{{firm_name}}`, `{{agent_name}}`, etc.)
+2. Business Hours - `is_open` / `intake_is_open` logic
+3. Practice Areas & Fees - agent answers to "Do you handle X?" and "How much?"
+4. Staff Directory & Routing - `caller_type` destinations and `staff_directory` table
+5. Existing Client Handling - verification policy, case statuses, info sharing
+6. Insurance Adjuster Handling - info sharing policy
+7. Medical Provider Handling - fax number and policy
+8. New Client Handling - message collection
+9. Post-Call Workflow - email recipients, CMS integration (SmartAdvocate/Filevine)
+10. Technical Integration - VAPI phone numbers, case lookup, transfer API
+
+**Includes:**
+- Quick reference checklist
+- Phased rollout guide (MVP → Enhanced → Optimized)
+
+---
+
+## [2026-01-20] - Professional Hospitality Warmth Enhancement (Phase 2: Business-Facing)
+
+### Change: Extend Warmth Patterns to Business-Facing Agents
+
+**Problem:** Phase 1 added warmth patterns to consumer-facing agents, but business-facing agents (insurance adjuster, medical provider, vendor) were intentionally skipped. These agents should also exhibit professional hospitality.
+
+**Solution:** Extended the same professional hospitality patterns to the 3 business-facing agents, adapted for B2B interactions (no first-name personalization since business callers provide client names, not their own).
+
+**Key Patterns Added (Same as Consumer-Facing):**
+| Pattern | Example |
+|---------|---------|
+| "I'd be happy to help" | Not "Sure, I can help" |
+| Add "please" | "Can I get the client's name please?" |
+| Thank for info | "Thank you for that" |
+| Narrate actions | "I'm pulling up that case now" |
+| Warm close | "Thanks for calling" |
+
+**Hardcoded Phrase Updates:**
+
+| File | Before | After |
+|------|--------|-------|
+| 04_insurance_adjuster.md (count=0) | "I'm not finding that name. Can you spell it for me?" | "I'm not finding that name. Could you spell that for me please?" |
+| 05_medical_provider.md (message close) | "Got your message. Someone will get back to you soon. And for any case-specific information, remember to send that fax." | "Got your message. Someone will get back to you soon. And for any case-specific information, remember to send that fax. Thanks for calling." |
+| 07_vendor.md (first response) | "Let me get you to our finance department about your invoice. Is that alright?" | "I'd be happy to help with that. Let me get you to our finance department. Is that alright?" |
+
+**Files Changed:**
+
+1. `prompts/squad/strict/assistants/04_insurance_adjuster.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Updated Step 2 (count=0): added "please" to spelling request
+   - Added warm closing guideline to [Response Guidelines]
+
+2. `prompts/squad/strict/assistants/05_medical_provider.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Updated Step 3 message closing: added "Thanks for calling"
+   - Added warm closing guideline to [Response Guidelines]
+
+3. `prompts/squad/strict/assistants/07_vendor.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Updated Step 1 first response: "Let me get you..." → "I'd be happy to help with that. Let me get you..."
+   - Added warm closing guideline to [Response Guidelines]
+
+**Expected Effect:** Business-facing agents will now sound warmer while maintaining professionalism:
+- "Can you spell it?" → "Could you spell that for me please?"
+- "Let me get you to finance" → "I'd be happy to help with that. Let me get you to finance"
+- Abrupt endings → "Thanks for calling"
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above changes need to be applied in the VAPI dashboard:
+1. Update Insurance Adjuster assistant prompt
+2. Update Medical Provider assistant prompt
+3. Update Vendor assistant prompt
+
+---
+
+## [2026-01-20] - Professional Hospitality Warmth Enhancement (Phase 1: Consumer-Facing)
+
+### Change: Add Demo Emma-Style Warmth Patterns to Consumer-Facing Agents
+
+**Problem:** Current prompts lacked concrete examples of professional hospitality. The agents sounded competent but not warm enough compared to the demo Emma style, which uses natural warmth through specific patterns.
+
+**Solution:** Added "Professional Hospitality Patterns" section to all consumer-facing strict agents, plus updated hardcoded phrases to match demo Emma's style.
+
+**Key Patterns Added:**
+| Pattern | Example |
+|---------|---------|
+| "I'd be happy to help" | Not "Sure, I can help" |
+| Use caller's first name | "Thank you, Jonathan" after learning name |
+| Add "please" | "Can I get your name please?" |
+| Thank for info | "Thank you for letting us know" |
+| Narrate actions | "I'm pulling up your case now" |
+| Warm close | "Have a great day" |
+
+**Hardcoded Phrase Updates:**
+
+| File | Before | After |
+|------|--------|-------|
+| 01_greeter_classifier.md | "Sure, I can help with that. May I have your full name?" | "I'd be happy to help. Can I get your name please?" |
+| 03_existing_client.md (DOB) | "For verification, could I have your date of birth?" | "Thank you, [First Name]. I'm pulling up your case now. Can I get your date of birth for verification please?" |
+| 03_existing_client.md (not found) | "I'm not finding your file under that name. Can you spell it for me?" | "I'm not finding your file under that name. Could you spell that for me please?" |
+| 03_existing_client.md (found) | "I found your file, [caller_name]. How can I help?" | "I have your file here, [First Name]. How can I help you?" |
+| pre_identified_caller (DOB) | "What's your date of birth?" | "Can I get your date of birth for verification please?" |
+| 14_fallback_line (after hours) | "...we'll be happy to help you." | "...we'd be happy to help you. Have a great day." |
+
+**Files Changed:**
+
+1. `prompts/squad/strict/assistants/01_greeter_classifier.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Updated Step 2 name request: "Sure, I can help" → "I'd be happy to help", "May I have your full name?" → "Can I get your name please?"
+   - Added warm closing guideline to [Response Guidelines]
+
+2. `prompts/squad/strict/assistants/03_existing_client.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Updated Step 1 DOB request to include first name, narration, and "please"
+   - Updated Step 3 (count=1) response: "I found your file" → "I have your file here"
+   - Updated Step 3 (count=0) spelling request: added "please"
+   - Added warm closing guideline to [Response Guidelines]
+
+3. `prompts/squad/strict/assistants/06_new_client.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Added warm closing guideline to [Response Guidelines]
+
+4. `prompts/squad/strict/assistants/09_family_member.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Added warm closing guideline to [Response Guidelines]
+
+5. `prompts/squad/strict/assistants/14_fallback_line.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Updated after-hours message to include warm closing
+
+6. `prompts/squad/strict/standalone/pre_identified_caller/system_prompt.md`
+   - Added Professional Hospitality Patterns to [Style] section
+   - Updated Step 1 DOB request: "What's your date of birth?" → "Can I get your date of birth for verification please?"
+   - Added warm closing guideline to [Response Guidelines]
+
+**Rationale:**
+- Root cause: prompts lacked concrete examples showing HOW to be warm
+- Demo Emma demonstrates warmth through: first name usage, "please", thanking, narrating actions, warm closings
+- This is professional hospitality, distinct from casual micro-courtesies ("No worries", "Perfect")
+- Business-facing agents (insurance_adjuster, medical_provider, vendor) intentionally NOT modified
+
+**Expected Effect:** Agents will now sound warmer and more hospitable while maintaining professionalism:
+- "Sure, I can help" → "I'd be happy to help"
+- Generic requests → Personalized with first name + "please"
+- Abrupt endings → "Have a great day"
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above changes need to be applied in the VAPI dashboard:
+1. Update Greeter Classifier assistant prompt
+2. Update Existing Client assistant prompt
+3. Update New Client assistant prompt
+4. Update Family Member assistant prompt
+5. Update Fallback Line assistant prompt
+6. Update Pre-Identified Caller (Standalone) assistant prompt
+
+---
+
+## [2026-01-20] - Existing Client Agent: Reframe DOB as Verification
+
+### Change: DOB Request Now Uses Verification Framing
+
+**Problem:** The DOB request was framed as a functional/lookup requirement:
+```
+"Could you please share your date of birth so I can locate your case details?"
+```
+
+This implies DOB is needed to find the case. For the "strict" verification variant, DOB should be framed as a security/verification measure.
+
+**Solution:** Changed the reason given for requesting DOB from "locate your case details" to verification-focused language.
+
+**Before:**
+```
+- Ask: "Could you please share your date of birth so I can locate your case details?"
+```
+
+**After:**
+```
+- Ask: "For verification, could I have your date of birth?"
+```
+
+**Rationale:**
+- **Verification framing**: Positions DOB as identity verification, not just search
+- **Shorter**: 9 words vs 14 words - more conversational, less formal
+- **Consistent with strict variant**: This is the "strict" folder, which requires verification before sharing information
+- **Professional tone**: "For verification" is standard in professional/legal contexts
+
+**Files Changed:**
+
+1. `prompts/squad/strict/assistants/03_existing_client.md`
+   - Updated Step 1: Collect Date of Birth - changed DOB request phrasing
+
+**Expected Effect:** The agent will now frame the DOB request as a verification step rather than a case lookup step, aligning with the strict variant's verification-first approach.
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above change needs to be applied in the VAPI dashboard:
+1. Update Existing Client assistant prompt with the new Step 1 DOB request
+
+---
+
+## [2026-01-20] - Existing Client Agent: Remove Proactive Case Status Disclosure
+
+### Change: Unified Response After Finding Client File
+
+**Problem:** When the Greeter handed off with `purpose: "case status"`, the Existing Client agent would immediately provide case status without the caller having to ask again. The instruction "Proceed to help based on their stated need" caused proactive disclosure based on handoff context.
+
+**Root Cause:** Step 3 (count=1 section) had conditional branching:
+- If purpose was clear from handoff: Proceed to help based on their stated need
+- If purpose was vague: Ask "What can I help you with?"
+
+This meant callers who stated "case status" to the Greeter never had to repeat their request—the agent jumped straight to disclosure.
+
+**Solution:** Removed the purpose-based conditional branching. Now the agent always acknowledges finding the file and waits for the caller to state their need.
+
+**Before:**
+```
+**If count = 1 (Perfect Match):**
+- Extract: case_manager, staff_id, case_status from results.
+- If purpose was clear from handoff: Proceed to help based on their stated need.
+- If purpose was vague: "I found your case, [caller_name from search results]. What can I help you with?"
+- Wait for the customer's response.
+```
+
+**After:**
+```
+**If count = 1 (Perfect Match):**
+- Extract: case_manager, staff_id, case_status from results.
+- "I found your file, [caller_name from search results]. How can I help?"
+- Wait for the customer's response.
+```
+
+**Rationale:**
+- **"file" vs "case"**: More conversational, less clinical, matches warm neighbor-like tone
+- **"How can I help?"**: Shorter (4 words vs 6), natural, open-ended
+- **Removed branching**: Simplifies logic, removes root cause of proactive disclosure
+- **Under 15 words**: Well within the 20-word response guideline
+
+**Files Changed:**
+
+1. `prompts/squad/strict/assistants/03_existing_client.md`
+   - Updated Step 3 (count=1 section) to remove purpose-based conditional branching
+   - Changed response from "I found your case... What can I help you with?" to "I found your file... How can I help?"
+
+**Expected Effect:** The agent will now always wait for the caller to explicitly state their need, even if the purpose was clear during the Greeter handoff. This ensures the caller confirms their request before receiving any case information.
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above change needs to be applied in the VAPI dashboard:
+1. Update Existing Client assistant prompt with the new Step 3 (count=1 section)
+
+---
+
 ## [2026-01-20] - Medical Provider Agent: Third-Party Policy
 
 ### Policy Change: Medical Providers Now Treated as Third Parties
