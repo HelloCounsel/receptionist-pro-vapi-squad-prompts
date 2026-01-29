@@ -4,6 +4,71 @@ All notable changes to the VAPI Squad Prompts are documented in this file.
 
 ---
 
+## [2026-01-29] - Greeter Tool Call Rules Fix
+
+### Fix: Greeter Agent Says "I'll get you to someone" Without Calling Handoff Tool
+
+**Problem:** Insurance caller (Gaby from Atlantic Casualty Insurance calling about client Grecia Orellana) was never transferred. The Greeter agent said "I'll get you to the right person" and "One moment please" multiple times, but never actually called the handoff tool. The call died from silence after repeated "Are you still there?" prompts.
+
+**Evidence from call:**
+| Timestamp | Agent Said | Tool Called? |
+|-----------|------------|--------------|
+| 7:32:29 | "I'll get you to the right person." | No |
+| 7:32:38 | "You're welcome." | No |
+| 7:32:53 | "One moment while I get you to the right person." | No |
+| 7:33:00 | "You're welcome." | No |
+| ... | Pattern continues... | No |
+
+The agent **never invoked `route_to_specialist`**. Every acknowledgment was just speech with no corresponding tool call.
+
+**Root Cause:** The Greeter prompt lacked the `[Tool Call Rules - CRITICAL]` section that other agents have. While other agents (Insurance Adjuster, Fallback Line, Direct Staff Request) have explicit rules like:
+
+```
+⚠️ STATEMENT WITHOUT TOOL = SILENCE DEATH
+If you say ANY phrase implying action ("hang on", "let me check", "one moment") without calling a tool in the SAME response, the system will wait for user input and the call will die from silence.
+```
+
+The Greeter only had a weak instruction at line 56:
+```
+- If about to hand off, trigger tool with NO text response
+```
+
+This was insufficient to prevent the anti-pattern where the model says acknowledgment phrases without calling the tool.
+
+**Solution:** Added `[Tool Call Rules - CRITICAL]` section to Greeter prompt matching the pattern used in other agents (especially `08_direct_staff_request.md`).
+
+**Files Changed:**
+
+1. `prompts/squad/lenient/assistants/01_greeter_classifier.md`
+   - Updated Response Guidelines: strengthened the handoff instruction to clarify tool must be in same response if any text is output
+   - Added `[Tool Call Rules - CRITICAL]` section with:
+     - WRONG/CORRECT examples for handoff tool calls
+     - `⚠️ STATEMENT WITHOUT TOOL = SILENCE DEATH` warning
+     - NEVER/ALWAYS examples specific to Greeter's routing behavior
+
+2. `prompts/squad/strict/assistants/01_greeter_classifier.md`
+   - Same changes as lenient variant
+
+**Expected Results After Fix:**
+- Greeter will call `route_to_specialist` immediately when ready to hand off
+- No more "I'll get you to the right person" without the tool call in the same response
+- Insurance callers (and all other caller types) will be routed without silence loops
+
+**Verification Test:**
+1. Call with insurance identifier: "Hi, I'm calling from State Farm about a claim"
+2. Provide client name when asked
+3. Greeter should handoff **silently** (or with minimal acknowledgment + tool call in same response) to Insurance Adjuster
+4. No repeated "one moment" or "I'll get you to someone" without transfer
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above changes need to be applied in the VAPI dashboard:
+1. Update Greeter Classifier assistant prompt with new Response Guidelines and `[Tool Call Rules - CRITICAL]` section
+
+---
+
 ## [2026-01-28] - Fallback Line Agent Delayed Transfer Fix
 
 ### Fix: Fallback Line Agent 36-Second Transfer Delay
