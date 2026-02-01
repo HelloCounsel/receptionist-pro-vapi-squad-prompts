@@ -1,0 +1,46 @@
+{
+  "name": "Standard Demo Receptionist - email and phone",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4.1",
+    "toolIds": [
+      "2f4bd459-4587-4563-8241-78c9b884cc1b",
+      "3b6b2ba2-d30b-4cc5-a982-8c9c7749018f"
+    ]
+  },
+  "voice": {
+    "provider": "cartesia",
+    "model": "sonic-3",
+    "voiceId": "f786b574-daa5-4673-aa0c-cbe3e8534c02"
+  },
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "flux-general-en",
+    "language": "en"
+  },
+  "firstMessage": "{{firm_name}} firm, Kate here. How can I help you?",
+  "firstMessageMode": "assistant-speaks-first",
+  "voicemailMessage": "Please call back when you're available.",
+  "endCallMessage": "Goodbye.",
+  "backgroundSound": "office",
+  "serverMessages": [
+    "end-of-call-report"
+  ],
+  "analysisPlan": {
+    "summaryPlan": {
+      "enabled": false
+    },
+    "successEvaluationPlan": {
+      "enabled": false
+    }
+  },
+  "artifactPlan": {
+    "structuredOutputIds": [
+      "a716b608-6cb0-4d71-a804-cda3c4d1526c"
+    ]
+  },
+  "compliancePlan": {
+    "hipaaEnabled": false,
+    "pciEnabled": false
+  }
+}

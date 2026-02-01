@@ -1,0 +1,2 @@
+-- Custom Pandoc Lua filter for clean DOCX formatting
+-- This is a placeholder - actual styling will come from reference doc

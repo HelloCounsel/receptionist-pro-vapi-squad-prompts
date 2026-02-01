@@ -4,6 +4,686 @@ All notable changes to the VAPI Squad Prompts are documented in this file.
 
 ---
 
+## [2026-01-31] - Prevent Existing Client Agent from Looking Up Other Clients' Cases
+
+### Fix: Existing Client Agent Should Not Provide Information About Other Clients
+
+**Problem:** When an existing client asked about another person's case (e.g., "I have another client case status" followed by a different name), the agent would search for and provide information about that other client's case. This is a confidentiality violation.
+
+**Evidence from call transcript:**
+- Caller identified as Cynthia Moore → Agent found and provided her case status ✓
+- Caller then said: "I have another client case status"
+- Caller provided name: "Howard Archer"
+- Agent searched for and attempted to provide Howard Archer's case information ← WRONG
+
+**Root Cause:** The `existing_client` agent had no check to verify that subsequent case lookups were for the SAME person as the verified caller. It would search for any name provided.
+
+**Solution:** Added "Different Client Detection" (Step 2.5/3.5) to the existing_client agent that:
+1. Detects when caller asks about a DIFFERENT person's case
+2. Refuses to search for or provide that information
+3. Routes to customer_success for proper handling
+
+**New Behavior:**
+- Agent detects signals like "another client", "different case", or a clearly different name
+- Agent responds: "I can only look up your own case information here. Let me get you to our customer success team."
+- Routes to customer_success instead of searching
+
+**Files Changed:**
+
+1. `prompts/squad/lenient/assistants/03_existing_client.md` - Added Step 2.5 (Different Client Detection) and pre-search validation
+2. `prompts/squad/strict/assistants/03_existing_client.md` - Added Step 3.5 (Different Client Detection) and pre-search validation
+
+---
+
+## [2026-01-31] - Fix Premature Routing on Ambiguous "Case Status" Requests
+
+### Fix: Greeter Assumed Caller Was Existing Client Without Confirmation
+
+**Problem:** When a caller said "case status" or "client case status" without explicitly identifying as a client (no "my case", "I'm a client", etc.), the greeter incorrectly assumed they were an existing client and immediately routed to the `existing_client` agent.
+
+**Evidence from call transcript:**
+- Caller: "Client case status"
+- Agent: Asked for name → Caller: "Cynthia Moore"
+- Agent: Immediately handed off to `existing_client` ← WRONG
+- The caller could have been: a family member, insurance adjuster, medical provider, or anyone else asking about a case
+
+**Root Cause:** The Existing Client handoff tool trigger description was too broad. It would match on generic "case status" language even when the caller hadn't said "MY case" or explicitly identified as a client.
+
+**Solution:** Added disambiguation step (Step 3.5) to the Greeter prompt to ask "Are you a current client of the firm?" when:
+1. Caller mentions case-related keywords ("case status", "case update", "checking on a case")
+2. But has NOT explicitly self-identified as a client ("I'm a client", "MY case", etc.)
+
+**New Behavior:**
+- Caller says "case status" → Agent asks "Are you a current client of the firm?"
+- If YES → Route to `existing_client`
+- If NO → Ask "Who are you calling about?" → Route to appropriate agent based on their relationship (family_member, insurance_adjuster, medical_provider, etc.)
+- Caller says "MY case status" → Skips disambiguation (explicit "MY"), routes directly to `existing_client`
+
+**Files Changed:**
+
+1. `prompts/squad/lenient/assistants/01_greeter_classifier.md` - Added Step 3.5 disambiguation logic
+2. `prompts/squad/strict/assistants/01_greeter_classifier.md` - Added Step 3.5 disambiguation logic
+3. `prompts/squad/lenient/handoff_tools/greeter_handoff_tool.json` - Tightened Existing Client trigger description
+4. `prompts/squad/strict/handoff_tools/greeter_handoff_tool.json` - Tightened Existing Client trigger description
+5. `prompts/squad/lenient/handoff_tools/greeter_handoff_destinations.md` - Updated Existing Client documentation
+6. `prompts/squad/strict/handoff_tools/greeter_handoff_destinations.md` - Updated Existing Client documentation
+
+---
+
+## [2026-01-30] - AI Disclosure: Prevent Agents from Lying About Being Human
+
+### Fix: Agent Claimed to Be a "Real Person" When Asked
+
+**Problem:** During a call, when the caller asked "Am I talking to a person? Am I talking to AI or something?", the agent responded "You're speaking with a real person here at the firm." This is a harmful lie - the agent must never claim to be human when directly asked.
+
+**Evidence from call transcript:**
+- Caller: "Am I talking to a person? Am I talking to AI or something?"
+- Agent: "You're speaking with a real person here at the firm." ← LIE
+
+**Root Cause:** The Greeter agent had an `[Error Handling]` section with explicit handling for "Are you AI?" questions, but ALL other agents in the squad lacked this critical instruction. When the caller was handed off to the Existing Client agent and asked the question there, the agent had no guidance and fabricated a harmful answer.
+
+**Solution:** Added AI disclosure handling to ALL squad agents (both lenient and strict variants), ensuring they honestly identify as AI receptionists when asked.
+
+**New Behavior:**
+- When caller asks "Are you AI?" / "Am I talking to a real person?" / similar:
+- Agent responds: "I'm an AI receptionist. How can I help you?"
+- Continues helping based on their response
+
+**Files Changed:**
+
+**Lenient Variant (14 files):**
+1. `prompts/squad/lenient/assistants/03_existing_client.md` - Added AI disclosure to [Error Handling]
+2. `prompts/squad/lenient/assistants/04_insurance_adjuster.md` - Added AI disclosure to [Error Handling]
+3. `prompts/squad/lenient/assistants/05_medical_provider.md` - Added AI disclosure to [Error Handling]
+4. `prompts/squad/lenient/assistants/06_new_client.md` - Added AI disclosure to [Error Handling]
+5. `prompts/squad/lenient/assistants/07_vendor.md` - Added AI disclosure to [Error Handling]
+6. `prompts/squad/lenient/assistants/08_direct_staff_request.md` - Added AI disclosure to [Error Handling]
+7. `prompts/squad/lenient/assistants/09_family_member.md` - Added AI disclosure to [Error Handling]
+8. `prompts/squad/lenient/assistants/10_spanish_speaker.md` - Added AI disclosure to [Error Handling]
+9. `prompts/squad/lenient/assistants/11_referral_source.md` - Added AI disclosure to [Error Handling]
+10. `prompts/squad/lenient/assistants/12_legal_system.md` - Added AI disclosure to [Error Handling]
+11. `prompts/squad/lenient/assistants/13_sales_solicitation.md` - Added AI disclosure to [Error Handling]
+12. `prompts/squad/lenient/assistants/14_fallback_line.md` - Added AI disclosure to [Error Handling]
+13. `prompts/squad/lenient/standalone/pre_identified_caller/system_prompt.md` - Added AI disclosure to [Error Handling]
+
+**Strict Variant (13 files):**
+14. `prompts/squad/strict/assistants/03_existing_client.md` - Added AI disclosure to [Error Handling]
+15. `prompts/squad/strict/assistants/04_insurance_adjuster.md` - Added AI disclosure to [Error Handling]
+16. `prompts/squad/strict/assistants/05_medical_provider.md` - Added AI disclosure to [Error Handling]
+17. `prompts/squad/strict/assistants/06_new_client.md` - Added AI disclosure to [Error Handling]
+18. `prompts/squad/strict/assistants/07_vendor.md` - Added AI disclosure to [Error Handling]
+19. `prompts/squad/strict/assistants/08_direct_staff_request.md` - Added AI disclosure to [Error Handling]
+20. `prompts/squad/strict/assistants/09_family_member.md` - Added AI disclosure to [Error Handling]
+21. `prompts/squad/strict/assistants/10_spanish_speaker.md` - Added AI disclosure to [Error Handling]
+22. `prompts/squad/strict/assistants/11_referral_source.md` - Added AI disclosure to [Error Handling]
+23. `prompts/squad/strict/assistants/12_legal_system.md` - Added AI disclosure to [Error Handling]
+24. `prompts/squad/strict/assistants/13_sales_solicitation.md` - Added AI disclosure to [Error Handling]
+25. `prompts/squad/strict/assistants/14_fallback_line.md` - Added AI disclosure to [Error Handling]
+26. `prompts/squad/strict/standalone/pre_identified_caller/system_prompt.md` - Added AI disclosure to [Error Handling]
+
+**Note:** The Greeter agent (01_greeter_classifier.md) already had this handling, so no changes were needed there.
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+Update ALL squad assistant prompts in VAPI dashboard to include the AI disclosure handling in their [Error Handling] sections:
+- All 13 specialized agents (both lenient and strict if deployed)
+- Pre-Identified Caller standalone assistant
+
+---
+
+## [2026-01-30] - Added Fax Number to Greeter and Professional Caller Agents
+
+### Feature: Greeter Can Answer Fax Number Requests Directly
+
+**Problem:** Insurance adjuster called asking for the firm's fax number. The Greeter handed off to the Insurance Adjuster agent, which then looked up the case but couldn't find a fax number in the case data (because fax is a firm-level contact, not case-level). The agent said "Her fax number is not listed in the file" and offered email instead.
+
+**Solution:** Added the firm fax number (`404-393-6107`) to:
+1. The Greeter's `[Common questions to answer briefly]` section for direct answers
+2. The `[Background Data] → Contact` section of all professional/business-facing agents so they can provide the fax number if asked during the call
+
+**Files Changed:**
+
+**Greeter (direct fax answer):**
+
+1. `prompts/squad/lenient/assistants/01_greeter_classifier.md`
+   - Added fax number to common questions: `"What's your fax number?" → "Our fax number is <spell>404</spell><break time="200ms"/><spell>393</spell><break time="200ms"/><spell>6107</spell>."`
+
+2. `prompts/squad/strict/assistants/01_greeter_classifier.md`
+   - Added fax number placeholder: `{{fax_number}}` (to be configured per-firm)
+
+**Professional Caller Agents (fax in Contact section):**
+
+3. `prompts/squad/lenient/assistants/04_insurance_adjuster.md`
+   - Added fax to Contact section: `- Fax: <spell>404</spell><break time="200ms"/><spell>393</spell><break time="200ms"/><spell>6107</spell>`
+
+4. `prompts/squad/lenient/assistants/05_medical_provider.md`
+   - Added fax to Contact section (same format)
+
+5. `prompts/squad/lenient/assistants/07_vendor.md`
+   - Added fax to Contact section (same format)
+
+6. `prompts/squad/lenient/assistants/12_legal_system.md`
+   - Added fax to Contact section (same format)
+
+7. `prompts/squad/strict/assistants/04_insurance_adjuster.md`
+   - Added fax placeholder: `- Fax: <spell>{{fax_number | slice: 0, 3}}</spell><break time="200ms"/><spell>{{fax_number | slice: 3, 3}}</spell><break time="200ms"/><spell>{{fax_number | slice: 6, 4}}</spell>`
+
+8. `prompts/squad/strict/assistants/05_medical_provider.md`
+   - Added fax placeholder (same format)
+
+9. `prompts/squad/strict/assistants/07_vendor.md`
+   - Added fax placeholder (same format)
+
+10. `prompts/squad/strict/assistants/12_legal_system.md`
+    - Added fax placeholder (same format)
+
+**Fax Number:** `404-393-6107`
+**Voice Format (lenient):** `<spell>404</spell><break time="200ms"/><spell>393</spell><break time="200ms"/><spell>6107</spell>`
+**Voice Format (strict):** `<spell>{{fax_number | slice: 0, 3}}</spell><break time="200ms"/><spell>{{fax_number | slice: 3, 3}}</spell><break time="200ms"/><spell>{{fax_number | slice: 6, 4}}</spell>`
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+Update the following assistant prompts in VAPI dashboard to include the fax number:
+1. Greeter Classifier - add fax to common questions
+2. Insurance Adjuster - add fax to Contact section
+3. Medical Provider - add fax to Contact section
+4. Vendor - add fax to Contact section
+5. Legal System - add fax to Contact section
+
+---
+
+## [2026-01-30] - Greeter Agent Failed Handoff Fix
+
+### Fix: Greeter Agent Said "I'll get you to the right person" Without Calling Handoff Tool
+
+**Problem:** Insurance caller (Gaby from Atlantic Casualty Insurance calling about client Grecia Orellana) provided all required information, but the Greeter agent said "I'll get you to the right person" without actually calling the handoff tool. The call got stuck in a loop with the agent repeatedly asking "Are you still there?" while the caller waited for a transfer that never happened.
+
+**Evidence from call logs:**
+- 09:02:28 - Agent says "I'll get you to the right person" but **no handoff tool called**
+- 09:02:36 - Caller says "Yeah. Okay. Thank you." (expecting transfer)
+- 09:02:37 - Agent says "You're welcome." (still no tool call)
+- 09:02:49 - Agent asks "Are you still there?" (stuck in limbo)
+- Loop continues with "One moment" → "Are you still there?" pattern
+
+**Root Cause:** The Greeter prompt lacked explicit tool-action binding instructions that other agents (like Insurance Adjuster) have. The model interpreted "route to the right person" as **announcing intent** rather than **taking action**. When the model said "I'll get you to the right person," it treated that as completing the task rather than as a cue to call the tool.
+
+**Comparison:**
+- Insurance Adjuster has `[Tool Call Rules - CRITICAL]` section requiring tool calls in same turn as acknowledgments
+- Greeter had no such explicit binding
+
+**Solution:** Added two sections to the Greeter prompt:
+
+1. **`[Tool Call Rules - CRITICAL]`** - Explicit instructions that the handoff tool MUST be called in the same turn as any acknowledgment:
+   - WRONG: Say "I'll get you to the right person" → wait → call tool later
+   - CORRECT: Call the handoff tool with NO text output in the same turn
+
+2. **`⚠️ STUCK STATE DETECTION`** - Fallback recovery when agent gets stuck mid-routing:
+   - If agent said "I'll get you to the right person" but no tool was called
+   - If agent is asking "Are you still there?" after promising to route
+   → IMMEDIATELY call fallback_line to recover
+
+3. **Updated Step 5: Route (SILENT ACTION)** - Strengthened language:
+   - Response MUST be: A tool call ONLY, with ZERO text output
+   - If about to type "I'll connect you" - STOP. Output nothing. Just call the tool.
+
+**Files Changed:**
+
+1. `prompts/squad/lenient/assistants/01_greeter_classifier.md`
+   - Added `[Tool Call Rules - CRITICAL]` section after Response Guidelines
+   - Added `⚠️ STUCK STATE DETECTION` section with fallback_line recovery
+   - Updated Step 5 to `Route (SILENT ACTION)` with stronger zero-text enforcement
+
+2. `prompts/squad/strict/assistants/01_greeter_classifier.md`
+   - Same changes as lenient variant
+
+3. `prompts/squad/lenient/handoff_tools/greeter_handoff_tool.json`
+   - Added TOOL CALL RULE to Insurance Adjuster destination description
+
+4. `prompts/squad/strict/handoff_tools/greeter_handoff_tool.json`
+   - Same changes as lenient variant
+
+5. `prompts/squad/lenient/handoff_tools/greeter_handoff_destinations.md`
+   - Added TOOL CALL RULE to Insurance Adjuster section (Section 3)
+
+6. `prompts/squad/strict/handoff_tools/greeter_handoff_destinations.md`
+   - Same changes as lenient variant
+
+**User Constraint Applied:** Only `fallback_line` mentioned as recovery tool in greeter prompt - no other handoff tool names added.
+
+**Expected Results After Fix:**
+- Handoff tool called immediately when routing criteria met (no verbal announcement first)
+- No "Are you still there?" loops after promising to route
+- Stuck states recover via fallback_line handoff
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above changes need to be applied in the VAPI dashboard:
+1. Update Greeter Classifier assistant prompt with new Tool Call Rules, Stuck State Detection, and updated Step 5
+2. Update Greeter Classifier's handoff tool - add TOOL CALL RULE to Insurance Adjuster destination description
+
+---
+
+## [2026-01-29] - McCraw Law Group SOP Analysis
+
+### Added: McCraw Law Group Gap Analysis Report
+
+**Summary:** Completed comprehensive SOP analysis for McCraw Law Group using the /analyze-sop skill. Analyzed 3 SOP documents against current agent capabilities.
+
+**Documents Analyzed:**
+- Intake Call Routing Cheat Sheet.pdf
+- SOP_-_Client_Crisis_Management_Communication.pdf
+- SOP_-_Inbound_Caller_Intake_and_Routing_Workflow.pdf
+
+**Analysis Results:**
+
+| Category | Count |
+|----------|-------|
+| Clear & Aligned | 8 |
+| Needs Work | 7 |
+| Needs Clarity | 6 |
+| Missing Data | 12 |
+
+**Key Findings:**
+
+1. **ALIGNED** - Core workflows match existing capabilities:
+   - Standard greeting and caller identification
+   - Case-related calls routing to case handler
+   - New client (PNC) routing to intake
+   - Insurance adjuster routing to case manager
+   - Fax redirect for third-party inquiries (972-332-2361)
+   - Direct staff transfer requests
+   - Upset client escalation
+   - Message taking when unavailable
+
+2. **NEEDS WORK** - Significant implementation gaps:
+   - **Status-based routing logic** - McCraw routes to case manager vs attorney based on case status (Pre-Lit 00-06 → CM, Pre-Lit 07-11 → Attorney, etc.)
+   - **Attorney transfer with fallback** - Try attorney first, fall back to case manager
+   - **Repeated caller detection** - Track call frequency for attorney escalation
+   - **Verified lienor distinction** - Verified lienors get transfers, unverified get fax redirect
+   - **Administrative/Marketing routing** - New departments not currently supported
+   - **Litigation case handling** - Different escalation contacts (Vickie Crabb, Emma Burgess vs Kyra, Janet)
+   - **Blocked third-party entity list** - Optum, Rawlings, Medcap, etc.
+
+3. **NEEDS CLARITY** - Questions for client:
+   - Record clerk role and routing criteria
+   - Intake manager escalation role
+   - Callback preference collection
+   - Staff availability checking method
+   - Department lead contacts
+   - Verification level preference (strict vs lenient)
+
+4. **MISSING DATA** - Configuration needed:
+   - Firm configuration (receptionist name, timezone, hours)
+   - Complete staff directory with roles
+   - Transfer destination phone numbers
+   - SmartAdvocate API credentials
+   - Post-call notification recipients
+
+**Files Created:**
+
+| File | Purpose |
+|------|---------|
+| `docs/sop-analysis/mccraw-law-group-analysis.md` | Complete gap analysis report |
+
+**Key Policy Alignment:**
+
+McCraw's "DO NOT verify representation over the phone" policy aligns perfectly with the Medical Provider agent's strict third-party handling with fax redirect.
+
+**Next Steps:**
+1. Schedule client discovery call for 6 clarity questions
+2. Request firm data package (staff, phone numbers, hours)
+3. Request additional SOPs (PNC screening workflow)
+4. Plan technical implementation for status-based routing
+
+---
+
+## [2026-01-29] - Client-Facing Workflow Document
+
+### Added: McCraw Law Group Workflow Specification
+
+**Summary:** Created client-facing workflow specification document for McCraw Law Group pilot meeting. This document validates understanding and surfaces questions in non-technical language.
+
+**Document:** `docs/sop-analysis/mccraw-law-group-workflow-spec.md`
+
+**Key Features:**
+- Multiple Mermaid flowcharts showing complete call routing per caller type
+- Universal policies section (applies to all calls)
+- Caller-type specific workflows (11 types documented)
+- Special scenarios (upset callers, repeat callers, attorney requests)
+- Data requirements checklist with status tracking
+- Consolidated open questions by category
+
+**Mermaid Diagrams Include:**
+1. **Main Call Routing** - Entry point and caller type classification
+2. **Existing Client Flow** - Status-based routing (Pre-Lit/Lit/Settled), repeat caller detection, frustrated caller escalation to Kyra/Janet or Vickie Crabb/Emma Burgess
+3. **Attorney Request Flow** - Attorney unavailable → fallback to Case Manager
+4. **New Client Flow** - Intake hours check
+5. **Insurance Adjuster Flow** - Case lookup, limited status sharing, CM routing
+6. **Medical Provider Flow** - Verified lienor check, fax redirect for unverified
+7. **Other Flows** - Vendor, Admin, Marketing, Direct Staff, Spanish, Fallback - all with availability/transfer logic
+8. **Availability Check** - Open question diagram highlighting the SOP requirement
+
+**Also Updated:** `/analyze-sop` skill now generates TWO documents:
+1. **Internal Gap Analysis** - Technical, for implementation team
+2. **Client-Facing Workflow Spec** - Non-technical, for client meetings
+
+**Client Document Principles Added to Skill:**
+- Use client language ("AI receptionist" not "agent")
+- Workflow-first descriptions (conversation experience, not features)
+- Questions embedded in relevant sections
+- Mermaid diagrams for visual orientation
+
+---
+
+## [2026-01-29] - SOP Analysis Skill Improvement
+
+### Fix: Distinguish Scope of SOP Requirements
+
+**Problem:** The analysis report combined quotes from different SOP sections into single requirements, creating incorrect assumptions. Example: "Confirm that the staff member is available to take the call" (universal policy) was combined with "If they are not available call the case manager" (attorney-request specific) as if they were one rule.
+
+**Solution:** Added guidelines #7 and #8 to the /analyze-sop skill:
+
+> **#7 - Distinguish scope precisely** - When quoting SOP requirements, clearly identify whether they are:
+> - **Universal policies** (apply to all caller types/transfers)
+> - **Caller-type-specific** (apply only to specific scenarios)
+> - **Role-specific** (apply only when transferring to specific staff roles)
+>
+> NEVER combine quotes from different sections/contexts into a single requirement. Each quote must include its exact source location (document name, page, section header) and scope.
+
+> **#8 - Disambiguate caller type scope** - When an SOP requirement doesn't explicitly state which caller types it applies to, flag it in "NEEDS CLARITY" and ask whether it applies to ALL caller types or only specific ones. This determines which sub-agent(s) need to implement the requirement.
+
+**Files Changed:**
+- `.claude/commands/analyze-sop.md` - Added guidelines #7 and #8 to Analysis Guidelines section
+- `docs/sop-analysis/mccraw-law-group-analysis.md` - Fixed sections 3.4 and 3.5 with proper source citations and caller type scope questions
+
+---
+
+## [2026-01-29] - SOP Analysis Skill
+
+### Added: /analyze-sop Claude Code Skill
+
+**Summary:** Created a Claude Code skill that systematically analyzes new client firm SOPs against current agent capabilities to produce structured gap analysis reports for onboarding.
+
+**What it does:**
+
+Analyzes SOPs across 4 dimensions:
+1. **Caller Type Coverage** - Maps SOP caller types to 13 implemented agents + pre-identified caller
+2. **Workflow Capabilities** - Evaluates routing logic, info sharing policies, transfers, message taking
+3. **Tool/Feature Requirements** - Checks requirements against available tools (search_case_details, staff_directory_lookup, transfer_call, handoff_tool)
+4. **Data/Configuration Requirements** - Cross-references against backend data needs (firm config, staff directory, transfer destinations, CRM fields, email routing)
+
+**Output Categories:**
+
+| Category | Description |
+|----------|-------------|
+| CLEAR & ALIGNED | SOP workflows matching existing capabilities exactly |
+| CLEAR, NEEDS WORK | Understood requirements needing prompt/config changes |
+| NEEDS CLARITY | Ambiguous SOP sections requiring client clarification |
+| MISSING DATA | Required configuration/data not provided in SOP |
+
+**Files Created:**
+
+| File | Purpose |
+|------|---------|
+| `.claude/commands/analyze-sop.md` | Skill definition with embedded capability matrix and analysis methodology |
+| `docs/sop-analysis/capability-checklist.md` | Comprehensive capability reference (caller types, tools, policies, data requirements) |
+| `docs/sop-analysis/sample-report.md` | Example output demonstrating format for all 4 categories |
+
+**Files Modified:**
+
+| File | Change |
+|------|--------|
+| `README.md` | Added .claude/ to directory structure, updated Claude Code Skills section |
+
+**Key Design Decisions:**
+
+1. **Embedded Capability Matrix** - Core agent/tool capabilities embedded in skill prompt for reliable analysis without requiring file reads during execution
+2. **Separate Reference Docs** - Full capability checklist in `docs/sop-analysis/` for detailed reference and maintenance
+3. **Structured Output Template** - Fixed 4-section markdown format with effort estimates and action items
+4. **Question-Based Clarity Section** - Frames ambiguities as specific questions, not vague concerns
+5. **Checklist-Style Missing Data** - Uses checkboxes for easy tracking during onboarding calls
+6. **Merged Data Requirements** - Combines `new_firm_onboarding.md` checklist with backend database schema requirements
+
+**Usage:**
+
+```
+/analyze-sop
+
+[Paste SOP content or provide file path to PDF/MD/DOCX/TXT]
+```
+
+**Capability Coverage:**
+
+The skill analyzes against:
+- 13 squad agents + pre-identified caller standalone
+- 4 tools (handoff_tool, search_case_details, staff_directory_lookup, transfer_call)
+- 7 transfer destinations (new_case, existing_client, customer_success, insurance, vendor, spanish, escalation)
+- Information sharing policies (what CAN vs CANNOT be shared per caller type)
+- Hours-based logic (is_open, intake_is_open)
+- Escalation triggers (frustrated caller, prior contact detection)
+
+**Reference:** See `docs/sop-analysis/sample-report.md` for complete example output.
+
+---
+
+## [2026-01-28] - Demo Assistants: Add "email and phone" Variant
+
+### Added: Standard Demo Receptionist - email and phone
+
+**Summary:** Created a new demo assistant variant that provides BOTH email AND phone when medical providers or insurance adjusters ask for case manager contact info.
+
+**What is it?**
+A variant of the Standard Demo Receptionist that shares full case manager contact information (email + phone) with external callers, rather than email only.
+
+**Key Differences from "only email" Variant:**
+
+| Aspect | only email | email and phone |
+|--------|------------|-----------------|
+| Medical provider contact request | Email only (always) | Phone OR email (based on what's asked) |
+| Insurance adjuster contact request | Email only (always) | Phone OR email (based on what's asked) |
+| Staff directory fields | email | email, phone |
+| Phone availability | Not available | Available when explicitly requested |
+| Phone format | N/A | Words ("eight seven zero...") |
+
+**Contact Info Behavior:**
+- Only provides what's explicitly requested (matches production squad pattern)
+- If caller asks for phone/number → provide phone only
+- If caller asks for email → provide email only
+- If caller asks generically for "contact info" → provide phone first, wait for follow-up
+- STOP TALKING after providing info and wait silently
+
+**Phone Number Format:**
+Phone numbers are read as words with natural grouping:
+- 8708771234 → "eight seven zero, eight seven seven, one two three four"
+- NOT "8-7-0, 8-7-7, 1-2-3-4"
+
+This matches the existing `<conversation_rules>` pattern for reading phone numbers back to callers.
+
+**Files Created:**
+
+| File | Purpose |
+|------|---------|
+| `prompts/demo/standard_demo_receptionist_full_contact/system_prompt.md` | Full prompt with phone support |
+| `prompts/demo/standard_demo_receptionist_full_contact/vapi_config.json` | VAPI configuration |
+| `prompts/demo/standard_demo_receptionist_full_contact/architecture.md` | Architecture documentation |
+
+**Files Modified:**
+
+| File | Change |
+|------|--------|
+| `prompts/demo/README.md` | Added new assistant documentation |
+| `README.md` | Added new assistant to Demo Assistants table |
+
+**Changes in the Prompt:**
+
+1. **Staff Directory** - Added `<phone>` field for each staff member
+2. **Medical Provider Flow Step 3a** - Now provides both email and phone
+3. **Medical Provider Flow Step 4** - Now provides both email and phone
+4. **Insurance Adjuster Flow Step 4** - Now provides both email and phone
+5. **Tool Usage section** - Updated to look up both email and phone from staff_directory
+
+---
+
+## [2026-01-28] - Demo Assistants: Add Standard Demo Receptionist
+
+### Added: Standard Demo Receptionist - only email
+
+**Summary:** Added a standalone VAPI assistant for client demos to the repository with full documentation.
+
+**What is it?**
+A single-agent receptionist assistant used for client demos. Unlike the production squad (which uses 13+ specialized agents with handoffs), this is an all-in-one assistant that handles all caller types internally.
+
+**Key Features:**
+- **Single-agent architecture** - no handoffs to other agents
+- **5 caller types handled**: Existing Client, Medical Provider, Insurance Adjuster, New Client, Escalation
+- **9 distinct call flows** - primary flows + fallback flows for transfer failures
+- **Email-only contact** - case manager contact provided via email only (not phone)
+- **Demo firm branding** - Duffy and Duffy Law Firm (firm_id: 8)
+
+**Files Created:**
+
+| File | Purpose |
+|------|---------|
+| `prompts/demo/README.md` | Demo assistants overview |
+| `prompts/demo/standard_demo_receptionist/system_prompt.md` | Full prompt in repository format |
+| `prompts/demo/standard_demo_receptionist/vapi_config.json` | VAPI configuration (model, voice, tools) |
+| `prompts/demo/standard_demo_receptionist/architecture.md` | Prompt architecture documentation |
+
+**Files Modified:**
+
+| File | Change |
+|------|--------|
+| `README.md` | Added demo assistants section and directory structure |
+
+**Architecture Highlights:**
+
+The architecture document covers:
+1. Prompt structure (XML-like sections)
+2. Caller classification matrix (5 types with detection signals)
+3. Call flow diagrams (primary + fallback flows)
+4. Tool integration patterns (search_case_details, transfer_call)
+5. Key design patterns (one question per turn, announce before transfer, silent wait after info)
+6. Differences from squad architecture
+
+**VAPI Configuration:**
+- Model: gpt-4.1 (OpenAI)
+- Voice: Cartesia sonic-3
+- Transcriber: Deepgram flux-general-en
+- Tools: search_case_details, transfer_call
+
+---
+
+## [2026-01-28] - Existing Client Agent: Stop Sharing Internal Case Status & Improve Escalation Logic
+
+### Fix: Agent Disclosed Internal Case Status to Client
+
+**Problem:** When a client asked about their case status, the agent responded: "Your case status is pre lit demand draft." The client didn't understand: "What you say the case is what?" / "I don't understand."
+
+**Root Cause:** The prompt explicitly instructed the agent to share the raw `case_status` field, which contains internal tracking terminology (e.g., "pre lit demand draft", "discovery") not meant for clients.
+
+**Solution:** Removed direct case status sharing. When clients ask about case status, the agent now offers to connect them with their case manager who can provide a proper update in context.
+
+**New Behavior:**
+- Client asks "what's my case status?"
+- Agent responds: "I have your case here. Your case manager [name] can give you a detailed update. Would you like me to get you over to them?"
+- During hours: Proceeds with transfer flow
+- After hours: Takes a message for callback
+
+---
+
+### Fix: Agent Didn't Escalate When Caller Mentioned Prior Attempts to Reach Staff
+
+**Problem:** Caller mentioned "I just left a voice message" and later "I had left a voice message" but the agent proceeded with routine handling instead of recognizing this as a communication concern.
+
+**Root Cause:** The frustrated caller escalation triggers required explicit frustration signals AND communication breakdown. Subtle mentions of "left a message" or "called earlier" weren't being caught.
+
+**Solution:** Added "Prior Contact Detection (PROACTIVE ESCALATION)" section that recognizes soft signals of communication concerns BEFORE frustration escalates.
+
+**Detection Triggers:**
+- "I left a message"
+- "I called earlier/yesterday/last week"
+- "I've been trying to reach..."
+- "Haven't heard back"
+- "Waiting for a callback"
+- "No one returned my call"
+
+**New Behavior:**
+- When detected (even without explicit frustration):
+- During hours: "I see you've already reached out. Would you like me to get you to our customer success team to make sure this gets resolved today?"
+- After hours: "Our office is closed right now, but I'll flag this as a priority. Let me take a message and someone will follow up with you first thing."
+
+This is DIFFERENT from frustrated caller escalation - it's proactive detection BEFORE frustration escalates.
+
+---
+
+### Files Changed
+
+1. `prompts/squad/strict/assistants/03_existing_client.md`
+   - Updated "If they ask about case status" to redirect to case manager instead of sharing internal status
+   - Removed "Case status" from `[What You CAN Share]`
+   - Added "Internal case status codes" to `[What You CANNOT Share]` with explanation
+   - Added `**Prior Contact Detection (PROACTIVE ESCALATION):**` section in `[Error Handling]`
+
+2. `prompts/squad/lenient/assistants/03_existing_client.md`
+   - Same changes as strict variant
+
+3. `prompts/squad/strict/standalone/pre_identified_caller/system_prompt.md`
+   - Updated "If they ask about case status" to redirect to case manager
+   - Removed "Case status" from `[What You CAN Share]`
+   - Added "Internal case status codes" to `[What You CANNOT Share]`
+   - Added `**Prior Contact Detection (PROACTIVE ESCALATION):**` section
+
+4. `prompts/squad/lenient/standalone/pre_identified_caller/system_prompt.md`
+   - Same changes as strict variant
+
+---
+
+### Second-Order Considerations
+
+1. **Case managers may see increased call volume** - this is appropriate since they're the right people to explain case status in context
+2. **Customer success may see more escalations** - better than having frustrated clients loop with the receptionist
+3. **Breaking change in behavior** - clients who previously got instant status info will now be transferred. This is intentional - the status was confusing them anyway.
+
+---
+
+### Action Required: VAPI Dashboard Update
+
+The above changes need to be applied in the VAPI dashboard:
+1. Update Existing Client assistant prompt (both squad variants)
+2. Update Pre-Identified Caller (Standalone) assistant prompt (both variants)
+
+---
+
+## [2026-01-28] - CLAUDE.md: VAPI Agent Debugging Process
+
+### Added: Debugging Methodology Documentation
+
+**Summary:** Extracted the debugging methodology from the fallback_line agent delayed transfer investigation and added it to CLAUDE.md as a reusable process.
+
+**The documented process:**
+
+1. **Reconstruct the Timeline First** - Extract exact timestamps from call logs and map actual vs expected behavior to identify the precise divergence point.
+
+2. **Compare to Working Agents** - Find an agent that handles the same scenario successfully, read its full prompt, and identify structural differences rather than adding more instructions.
+
+3. **Understand Model Behavior vs. Prompt Intent** - When instructions like "IMMEDIATELY" don't work, recognize that models interpret sequentially. The fix often requires changing the interaction pattern (e.g., adding a question to create a second turn).
+
+4. **Adopt Proven Patterns Over New Instructions** - Copy structural patterns from working agents (like two-turn consent flow) rather than inventing new instruction text.
+
+5. **Check Structural Consistency** - Verify the agent has all standard sections that working agents have.
+
+**Files Changed:**
+
+1. `CLAUDE.md` - Added "VAPI Agent Debugging Process" section with 5-step methodology
+
+---
+
 ## [2026-01-28] - Fallback Line Agent Delayed Transfer Fix
 
 ### Fix: Fallback Line Agent 36-Second Transfer Delay

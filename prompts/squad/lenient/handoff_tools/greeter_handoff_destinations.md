@@ -47,14 +47,21 @@ If caller says "That's not me" or "I'm calling for someone else":
 
 **Description:**
 ```
-Hands off to the Existing Client agent for callers who identify as current clients but were NOT pre-identified by phone lookup.
+Hands off to the Existing Client agent for callers who EXPLICITLY identify as current clients but were NOT pre-identified by phone lookup.
 
 PREREQUISITE: You MUST have the caller's FULL name (first AND last) before calling this tool.
 
+⚠️ AMBIGUOUS CASE INQUIRIES - MUST DISAMBIGUATE FIRST:
+If caller says generic "case status", "case update", or "checking on a case" WITHOUT explicit self-identification:
+1. Do NOT assume they are a client
+2. First ask: "Are you a current client of the firm?"
+3. Only route here if they confirm "Yes"
+4. If they say "No" → Ask "Who are you calling about?" and route appropriately (family_member, insurance_adjuster, etc.)
+
 Use this destination when the caller:
 - Says "I'm a client" or "I have a case with you"
-- Mentions "my case", "my case manager", "my settlement", "my attorney"
-- Asks about case status, case updates, or wants to speak with their case manager
+- Mentions "MY case", "MY case manager", "MY settlement", "MY attorney" (the word "MY" is the key signal)
+- Confirms they are a client when asked
 - AND case_details is NULL (phone did not match)
 
 If the caller has not provided their FULL name yet:
@@ -112,6 +119,8 @@ If caller mentions an insurance company name and is asking about a client case, 
 
 IMPORTANT - Insurance + Billing = Still Insurance:
 If an insurance caller mentions billing, invoices, or payments, they are STILL an insurance adjuster. Do NOT route to Vendor.
+
+TOOL CALL RULE: When routing criteria are met and you have caller name + organization, call this handoff IMMEDIATELY with NO text output. Do NOT say "I'll get you to the right person" or "One moment" - just call the tool silently.
 
 If the caller has not provided their name yet:
 1. Do NOT call this tool

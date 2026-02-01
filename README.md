@@ -6,6 +6,10 @@ AI receptionist system for Bey & Associates personal injury law firm. This repos
 
 ```
 ├── prompts/
+│   ├── demo/                         # Demo assistants (standalone, for client demos)
+│   │   ├── standard_demo_receptionist/           # Email-only contact variant
+│   │   └── standard_demo_receptionist_full_contact/  # Email + phone variant
+│   │
 │   └── squad/
 │       ├── lenient/                    # Production variant (minimal verification)
 │       │   ├── assistants/             # 13 agent prompts
@@ -16,7 +20,14 @@ AI receptionist system for Bey & Associates personal injury law firm. This repos
 │       └── strict/                     # Future variant (strict verification)
 │           └── (same structure)
 │
+├── .claude/
+│   └── commands/
+│       └── analyze-sop.md              # SOP analysis skill definition
+│
 ├── docs/
+│   ├── sop-analysis/                   # SOP analysis reference docs
+│   │   ├── capability-checklist.md     # Agent capability matrix
+│   │   └── sample-report.md            # Example analysis output
 │   ├── CHANGELOG.md                    # Issue tracking and fixes
 │   ├── new_firm_onboarding.md          # Onboarding questionnaire for new firms
 │   └── vapi_squad_reference.md         # VAPI squad architecture reference
@@ -177,6 +188,9 @@ See `standalone/pre_identified_caller/backend_variables.md` for variable structu
 
 ## Critical Configuration Notes
 
+### AI Disclosure (CRITICAL)
+All agents MUST honestly identify as AI when directly asked "Are you AI?" or "Am I talking to a real person?". The response should be: "I'm an AI receptionist. How can I help you?" - then continue helping. Agents must NEVER claim to be human.
+
 ### Silent Handoffs
 All handoff tools must have `"messages": []` (empty array) for silent transitions.
 
@@ -207,7 +221,56 @@ Each handoff includes `variableExtractionPlan` to pass context:
 | `prompts/squad/lenient/handoff_tools/agent_tools.json` | Tool definitions and assignments |
 | `prompts/squad/lenient/vapi_config/assistant_settings.json` | VAPI assistant settings |
 | `docs/CHANGELOG.md` | Bug fixes and improvements history |
+| `docs/new_firm_onboarding.md` | Onboarding questionnaire for new firms |
 | `vapi_id_mapping.json` | Sandbox/Production assistant IDs |
+| `CLAUDE.md` | Development guidelines + VAPI agent debugging process |
+
+---
+
+## Claude Code Skills
+
+### /analyze-sop - SOP Gap Analysis
+
+Analyzes new client firm SOPs against current agent capabilities to produce a structured gap analysis report.
+
+**Usage:**
+```
+/analyze-sop
+
+[Paste SOP content or provide file path]
+```
+
+**Supported Inputs:**
+- Pasted SOP content directly in the prompt
+- File path to SOP document (PDF, MD, DOCX, TXT)
+
+**What it Analyzes:**
+
+1. **Caller Type Coverage** - Maps SOP caller types to 13 implemented agents
+2. **Workflow Capabilities** - Evaluates routing, info sharing, transfers, message taking
+3. **Tool/Feature Requirements** - Checks against available tools (search_case_details, staff_directory_lookup, transfer_call)
+4. **Data/Configuration Requirements** - Cross-references against backend data needs
+
+**Output Categories:**
+
+| Category | Description |
+|----------|-------------|
+| CLEAR & ALIGNED | SOP workflows matching existing capabilities exactly |
+| CLEAR, NEEDS WORK | Understood requirements needing prompt/config changes |
+| NEEDS CLARITY | Ambiguous SOP sections requiring client clarification |
+| MISSING DATA | Required configuration/data not provided in SOP |
+
+**Reference Files:**
+
+| File | Purpose |
+|------|---------|
+| `.claude/commands/analyze-sop.md` | Skill definition with embedded capability matrix |
+| `docs/sop-analysis/capability-checklist.md` | Full capability reference (agents, tools, policies, data requirements) |
+| `docs/sop-analysis/sample-report.md` | Example output format with all 4 categories |
+| `docs/sop-analysis/mccraw-law-group-analysis.md` | McCraw Law Group internal gap analysis |
+| `docs/sop-analysis/mccraw-law-group-workflow-spec.md` | McCraw Law Group client-facing workflow spec |
+
+**Example Output:** See `docs/sop-analysis/sample-report.md` for a complete sample report demonstrating the structured output format.
 
 ---
 
@@ -223,3 +286,25 @@ Each handoff includes `variableExtractionPlan` to pass context:
 - [ ] After-hours handling
 - [ ] Frustrated caller → priority escalation
 - [ ] Fallback line → customer success transfer (verify transfer_call invoked within 5s of handoff)
+- [ ] Case status inquiry → offers case manager transfer (NOT internal status code)
+- [ ] Prior contact mention ("I left a message") → proactive customer success offer
+
+---
+
+## Demo Assistants
+
+Standalone assistants for client demos, separate from the production squad architecture.
+
+**Location:** `prompts/demo/`
+
+| Assistant | Purpose | Firm |
+|-----------|---------|------|
+| Standard Demo Receptionist - only email | All-in-one receptionist for demos (email only for case manager contact) | Duffy and Duffy (firm_id: 8) |
+| Standard Demo Receptionist - email and phone | All-in-one receptionist for demos (full contact: email + phone) | Duffy and Duffy (firm_id: 8) |
+
+**Key Differences from Squad:**
+- Single agent handles all caller types (no handoffs)
+- Self-contained routing logic
+- Demo-specific firm configuration
+
+See `prompts/demo/README.md` for full documentation.

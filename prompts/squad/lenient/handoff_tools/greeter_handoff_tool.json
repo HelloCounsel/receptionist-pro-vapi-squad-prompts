@@ -32,7 +32,7 @@
     {
       "type": "assistant",
       "assistantName": "Existing Client",
-      "description": "Caller says 'my case', 'my case manager', 'my paralegal', 'my attorney', 'my settlement', 'following up on my case', 'calling back about my case'. They are an existing client but phone was NOT pre-identified.",
+      "description": "Caller EXPLICITLY identifies as a client: 'I'm a client', 'I have a case with you', 'I'm calling about MY case', 'my case manager', 'my settlement'. The word 'MY' before case-related terms is the key signal. Do NOT use for generic 'case status' or 'case update' requests without explicit self-identification. If caller says just 'case status' without 'my', first ask 'Are you a current client of the firm?' - only route here if they confirm yes.",
       "contextEngineeringPlan": {
         "type": "lastNMessages",
         "maxMessages": 5
@@ -60,7 +60,7 @@
     {
       "type": "assistant",
       "assistantName": "Insurance Adjuster",
-      "description": "Caller from insurance company: 'calling from State Farm/Progressive/GEICO/Allstate/USAA/Liberty Mutual/Farmers', 'I'm the adjuster', 'regarding a claim', 'insurance representative'. Also matches: 'with [Company] claims', '[Company] claims department', asks about LOR/Letter of Representation, mentions 'on a recorded line'. If caller mentions ANY insurance company name and is asking about a client case, route here even without explicit role statement. CRITICAL: Even if they mention billing, payment, or invoice - insurance callers ALWAYS route here, NEVER to Vendor.",
+      "description": "Caller from insurance company: 'calling from State Farm/Progressive/GEICO/Allstate/USAA/Liberty Mutual/Farmers', 'I'm the adjuster', 'regarding a claim', 'insurance representative'. Also matches: 'with [Company] claims', '[Company] claims department', asks about LOR/Letter of Representation, mentions 'on a recorded line'. If caller mentions ANY insurance company name and is asking about a client case, route here even without explicit role statement. CRITICAL: Even if they mention billing, payment, or invoice - insurance callers ALWAYS route here, NEVER to Vendor. TOOL CALL RULE: When routing criteria are met and you have caller name + organization, call this handoff IMMEDIATELY with NO text output. Do NOT say 'I'll get you to the right person' - just call the tool silently.",
       "contextEngineeringPlan": {
         "type": "lastNMessages",
         "maxMessages": 5
